@@ -21,10 +21,13 @@ final class PausePayGatewayFactory extends GatewayFactory
         );
 
         if (false === (bool) $config['payum.api']) {
-            $defaultOptions = ['sandbox' => true];
+            $defaultOptions = [PausePayApi::SANDBOX_FIELD_NAME => true];
             $config->defaults($defaultOptions);
             $config['payum.default_options'] = $defaultOptions;
-            $config['payum.required_options'] = ['merchant_key', 'sandbox'];
+            $config['payum.required_options'] = [
+                PausePayApi::API_KEY_FIELD_NAME,
+                PausePayApi::SANDBOX_FIELD_NAME,
+            ];
 
             /**
              * @psalm-suppress MixedArgumentTypeCoercion

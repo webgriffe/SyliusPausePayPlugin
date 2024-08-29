@@ -8,28 +8,24 @@ final class PausePayApi
 {
     public const GATEWAY_CODE = 'pausepay';
 
+    public const API_KEY_FIELD_NAME = 'api_key';
+
+    public const SANDBOX_FIELD_NAME = 'sandbox';
+
     /**
-     * @param array{sandbox: bool, merchant_key: string, allowed_terms: array<array-key, int>} $config
+     * @param array{sandbox: bool, api_key: string} $config
      */
     public function __construct(private array $config)
     {
     }
 
-    public function getMerchantKey(): string
+    public function getApiKey(): string
     {
-        return $this->config['merchant_key'];
+        return $this->config[self::API_KEY_FIELD_NAME];
     }
 
     public function isSandBox(): bool
     {
-        return $this->config['sandbox'];
-    }
-
-    /**
-     * @return array<array-key, int>
-     */
-    public function getAllowedTerms(): array
-    {
-        return array_values($this->config['allowed_terms']);
+        return $this->config[self::SANDBOX_FIELD_NAME];
     }
 }
