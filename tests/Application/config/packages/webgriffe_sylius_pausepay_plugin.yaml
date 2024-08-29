@@ -1,0 +1,2 @@
+imports:
+    - { resource: "@WebgriffeSyliusPausePayPlugin/config/config.php" }

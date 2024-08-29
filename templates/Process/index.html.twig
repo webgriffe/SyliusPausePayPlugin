@@ -1,0 +1,25 @@
+{% extends '@SyliusShop/layout.html.twig' %}
+
+{% block content %}
+    <h1>{{ 'webgriffe_sylius_pausepay.ui.processing_payment'|trans }}</h1>
+
+    <p>{{ 'webgriffe_sylius_pausepay.ui.please_wait'|trans }}</p>
+
+    <img src="{{ asset('build/shop/images/loading.gif', 'shop') }}" alt="{{ 'webgriffe_sylius_pausepay.ui.loading'|trans }}">
+
+    {% if redirectUrl %}
+        <a href="{{ redirectUrl }}">
+            {{ 'webgriffe_sylius_pausepay.ui.return_to_pausepay_checkout'|trans }}
+        </a>
+    {% endif %}
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+
+    <script>
+        window.afterUrl = "{{ afterUrl }}";
+        window.paymentStatusUrl = "{{ paymentStatusUrl }}";
+    </script>
+    <script src="{{ asset('bundles/webgriffesyliuspausepayplugin/poll_payment.js') }}"></script>
+{% endblock %}
