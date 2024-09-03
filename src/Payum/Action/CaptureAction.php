@@ -15,7 +15,6 @@ use Payum\Core\Request\Capture;
 use Psr\Log\LoggerInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface as SyliusPaymentInterface;
-use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Routing\RouterInterface;
 use Webgriffe\SyliusPausePayPlugin\Client\ClientInterface;
 use Webgriffe\SyliusPausePayPlugin\Client\ValueObject\Order;
@@ -29,7 +28,6 @@ final class CaptureAction implements ActionInterface, GatewayAwareInterface, Api
     public function __construct(
         private RouterInterface $router,
         private LoggerInterface $logger,
-        private RequestStack $requestStack,
         private ClientInterface $client,
     ) {
         $this->apiClass = PausePayApi::class;
@@ -43,8 +41,6 @@ final class CaptureAction implements ActionInterface, GatewayAwareInterface, Api
         /** @var SyliusPaymentInterface $payment */
         $payment = $request->getModel();
 
-        /** @var string|int $paymentId */
-        $paymentId = $payment->getId();
         $this->logInfo($payment, 'Start capture action', );
 
         $paymentDetails = $payment->getDetails();

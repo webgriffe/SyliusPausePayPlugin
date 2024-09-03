@@ -17,11 +17,9 @@ return static function (ContainerConfigurator $containerConfigurator) {
             [
                 service('router'),
                 service('webgriffe_sylius_pausepay.logger'),
-                service('request_stack'),
                 service('webgriffe_sylius_pausepay.client'),
             ]
         )
-        ->tag('payum.action', ['factory' => PausePayApi::GATEWAY_CODE, 'alias' => 'payum.action.capture'])
         ->tag('payum.action', ['factory' => PausePayApi::GATEWAY_CODE, 'alias' => 'payum.action.capture']);
 
     $services->set('webgriffe_sylius_pausepay.payum.action.status', StatusAction::class)

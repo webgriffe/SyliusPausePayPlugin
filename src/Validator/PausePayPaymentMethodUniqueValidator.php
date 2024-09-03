@@ -40,6 +40,7 @@ final class PausePayPaymentMethodUniqueValidator extends ConstraintValidator
             return;
         }
 
+        // todo: this should consider if the payment method is enabled on the channel
         /** @var PaymentMethodInterface[] $paymentMethods */
         $paymentMethods = $this->paymentMethodRepository->findAll();
         /** @psalm-suppress DeprecatedMethod */
