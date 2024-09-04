@@ -9,10 +9,15 @@ use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Webgriffe\SyliusPausePayPlugin\Client\ValueObject\Order;
 use Webgriffe\SyliusPausePayPlugin\Client\ValueObject\OrderItem;
+use Webgriffe\SyliusPausePayPlugin\Resolver\CompanyInfoResolverInterface;
 use Webmozart\Assert\Assert;
 
 final class OrderMapper implements OrderMapperInterface
 {
+    public function __construct(private CompanyInfoResolverInterface $companyInfoResolver)
+    {
+    }
+
     public function mapFromSyliusPayment(PaymentInterface $payment, string $captureUrl, string $cancelUrl): Order
     {
         // todo: there's english text that should be translated
@@ -48,6 +53,7 @@ final class OrderMapper implements OrderMapperInterface
         }
 
         $description = $this->getOrderDescription($order, $number);
+        $companyInfo = $this->companyInfoResolver->resolveFromOrder($order);
 
         return new Order(
             $amount / 100,
@@ -57,9 +63,9 @@ final class OrderMapper implements OrderMapperInterface
             $description,
             $captureUrl,
             $cancelUrl,
-            'Webgriffe SRL', // todo
-            '02277170359', // todo
-            'support@webgriffe.com',
+            $companyInfo->getName(),
+            $companyInfo->getVatNumber(),
+            $companyInfo->getEmail(),
             $items,
         );
     }

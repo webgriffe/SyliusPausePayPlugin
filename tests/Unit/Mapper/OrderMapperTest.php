@@ -22,6 +22,7 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethod;
 use Sylius\Component\Core\OrderPaymentStates;
 use Sylius\Component\Order\Model\OrderItemUnitInterface;
+use Tests\Webgriffe\SyliusPausePayPlugin\Service\Resolver\DummyCompanyInfoResolver;
 use Webgriffe\SyliusPausePayPlugin\Mapper\OrderMapper;
 use Webgriffe\SyliusPausePayPlugin\Mapper\OrderMapperInterface;
 
@@ -31,7 +32,7 @@ final class OrderMapperTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->mapper = new OrderMapper();
+        $this->mapper = new OrderMapper(new DummyCompanyInfoResolver());
     }
 
     public function test_it_maps_sylius_payment_to_pausepay_order(): void
