@@ -21,6 +21,9 @@ use Webgriffe\SyliusPausePayPlugin\Client\ValueObject\Order;
 use Webgriffe\SyliusPausePayPlugin\Payum\PausePayApi;
 use Webmozart\Assert\Assert;
 
+/**
+ * @psalm-suppress PropertyNotSetInConstructor Api and gateway are injected via container configuration
+ */
 final class CaptureAction implements ActionInterface, GatewayAwareInterface, ApiAwareInterface
 {
     use GatewayAwareTrait, ApiAwareTrait;

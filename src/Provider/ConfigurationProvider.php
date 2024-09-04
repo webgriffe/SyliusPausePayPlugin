@@ -52,6 +52,7 @@ final class ConfigurationProvider implements ConfigurationProviderInterface
         foreach ($methods as $method) {
             /** @var GatewayConfigInterface $gatewayConfig */
             $gatewayConfig = $method->getGatewayConfig();
+            /** @psalm-suppress DeprecatedMethod */
             if ($gatewayConfig->getFactoryName() !== PausePayApi::GATEWAY_CODE) {
                 continue;
             }
