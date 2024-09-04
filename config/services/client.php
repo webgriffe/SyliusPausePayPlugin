@@ -19,7 +19,7 @@ return static function (ContainerConfigurator $containerConfigurator) {
 
     $services->set('webgriffe_sylius_pausepay.http_client', GuzzleHttpClient::class);
 
-    $services->set('webgriffe_sylius_pausepay.client', Client::class)
+    $services->set('webgriffe_sylius_pausepay.client.client', Client::class)
         ->args(
             [
                 service('webgriffe_sylius_pausepay.http_client'),
@@ -30,5 +30,5 @@ return static function (ContainerConfigurator $containerConfigurator) {
             ]
         );
 
-    $services->alias(ClientInterface::class, 'webgriffe_sylius_pausepay.client');
+    $services->alias(ClientInterface::class, 'webgriffe_sylius_pausepay.client.client');
 };
