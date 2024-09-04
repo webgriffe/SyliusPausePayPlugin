@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Webgriffe\SyliusPausePayPlugin\Mapper;
 
-use DateTimeImmutable;
+use Carbon\Carbon;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Webgriffe\SyliusPausePayPlugin\Client\ValueObject\Order;
@@ -31,7 +31,7 @@ final class OrderMapper implements OrderMapperInterface
         $number = $order->getNumber();
         Assert::stringNotEmpty($number);
 
-        $issueDate = new DateTimeImmutable();
+        $issueDate = Carbon::now();
 
         $items = [];
         foreach ($order->getItems() as $orderItem) {

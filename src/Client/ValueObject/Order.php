@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Webgriffe\SyliusPausePayPlugin\Client\ValueObject;
 
-use DateTimeImmutable;
+use DateTimeInterface;
 
 final class Order implements ArrayableInterface
 {
@@ -14,7 +14,7 @@ final class Order implements ArrayableInterface
     public function __construct(
         private float $amount, // the total amount of the cart, including tax, shipment etc.
         private string $number, // the unique number of the order
-        private DateTimeImmutable $issueDate, // order creation date
+        private DateTimeInterface $issueDate, // order creation date
         private string $description, // description of the purchased goods
         private string $remittance, // reason for the BUYER transfer
         private string $okRedirectUrl, // redirect URL in case of success
@@ -36,7 +36,7 @@ final class Order implements ArrayableInterface
         return $this->number;
     }
 
-    public function getIssueDate(): DateTimeImmutable
+    public function getIssueDate(): DateTimeInterface
     {
         return $this->issueDate;
     }

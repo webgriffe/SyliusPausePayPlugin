@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Webgriffe\SyliusPausePayPlugin\Unit\Mapper;
 
+use Carbon\Carbon;
 use DateTimeImmutable;
 use PHPUnit\Framework\TestCase;
 use Sylius\Bundle\PayumBundle\Model\GatewayConfig;
@@ -33,6 +34,7 @@ final class OrderMapperTest extends TestCase
     protected function setUp(): void
     {
         $this->mapper = new OrderMapper(new DummyCompanyInfoResolver());
+        Carbon::setTestNow('2024-09-01 12:30:00');
     }
 
     public function test_it_maps_sylius_payment_to_pausepay_order(): void
@@ -43,7 +45,7 @@ final class OrderMapperTest extends TestCase
 
         self::assertSame(260.62, $order->getAmount());
         self::assertSame('000001732', $order->getNumber());
-//        self::assertSame('', $order->getIssueDate()->format('Y-m-d H:i:s')); // todo: use Carbon
+        self::assertSame('2024-09-01 12:30:00', $order->getIssueDate()->format('Y-m-d H:i:s'));
         self::assertSame('Order #000001732 of 2024-09-01 on mywebsite.com', $order->getDescription());
         self::assertSame('Order #000001732 of 2024-09-01 on mywebsite.com', $order->getRemittance());
         self::assertSame('https://ok', $order->getOkRedirectUrl());
