@@ -46,12 +46,14 @@ final class OrderMapper implements OrderMapperInterface
             $items[] = new OrderItem('Shipping', 1, $shippingTotal / 100);
         }
 
+        $description = $this->getOrderDescription($order, $number);
+
         return new Order(
             $amount / 100,
             $number,
             $issueDate,
-            '', // todo
-            '', // todo
+            $description,
+            $description,
             'https://ok', // todo
             'https://ko', // todo
             'Webgriffe SRL', // todo
@@ -59,5 +61,19 @@ final class OrderMapper implements OrderMapperInterface
             'support@webgriffe.com',
             $items,
         );
+    }
+
+    private function getOrderDescription(OrderInterface $order, string $number): string
+    {
+        $createdAt = $order->getCheckoutCompletedAt();
+        Assert::notNull($createdAt);
+
+        $descriptor = sprintf('Order #%s of %s', $number, $createdAt->format('Y-m-d'),);
+        $hostname = $order->getChannel()?->getHostname();
+        if ($hostname !== null) {
+            $descriptor .= ' on ' . $hostname;
+        }
+
+        return $descriptor;
     }
 }

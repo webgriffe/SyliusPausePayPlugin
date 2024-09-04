@@ -9,6 +9,7 @@ use PHPUnit\Framework\TestCase;
 use Sylius\Bundle\PayumBundle\Model\GatewayConfig;
 use Sylius\Component\Core\Model\Adjustment;
 use Sylius\Component\Core\Model\AdjustmentInterface;
+use Sylius\Component\Core\Model\Channel;
 use Sylius\Component\Core\Model\Customer;
 use Sylius\Component\Core\Model\CustomerInterface;
 use Sylius\Component\Core\Model\Order;
@@ -42,8 +43,8 @@ final class OrderMapperTest extends TestCase
         self::assertSame(260.62, $order->getAmount());
         self::assertSame('000001732', $order->getNumber());
 //        self::assertSame('', $order->getIssueDate()->format('Y-m-d H:i:s')); // todo: use Carbon
-        self::assertSame('', $order->getDescription());
-        self::assertSame('', $order->getRemittance());
+        self::assertSame('Order #000001732 of 2024-09-01 on mywebsite.com', $order->getDescription());
+        self::assertSame('Order #000001732 of 2024-09-01 on mywebsite.com', $order->getRemittance());
         self::assertSame('https://ok', $order->getOkRedirectUrl());
         self::assertSame('https://ko', $order->getKoRedirectUrl());
         self::assertSame('Webgriffe SRL', $order->getBuyerInfoName());
@@ -91,6 +92,10 @@ final class OrderMapperTest extends TestCase
         $order->setPaymentState(OrderPaymentStates::STATE_AWAITING_PAYMENT);
         $order->setCheckoutCompletedAt(new DateTimeImmutable('2024-09-01 10:00:10'));
         $order->setPaymentState(OrderPaymentStates::STATE_PAID);
+
+        $channel = new Channel();
+        $channel->setHostname('mywebsite.com');
+        $order->setChannel($channel);
 
         $order->setCustomer($this->getCustomer());
 
