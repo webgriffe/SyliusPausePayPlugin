@@ -38,7 +38,7 @@ final class OrderMapperTest extends TestCase
     {
         $payment = $this->getPayment();
 
-        $order = $this->mapper->mapFromSyliusPayment($payment);
+        $order = $this->mapper->mapFromSyliusPayment($payment, 'https://ok', 'https://ko');
 
         self::assertSame(260.62, $order->getAmount());
         self::assertSame('000001732', $order->getNumber());

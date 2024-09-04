@@ -9,5 +9,5 @@ use Webgriffe\SyliusPausePayPlugin\Client\ValueObject\Order;
 
 interface OrderMapperInterface
 {
-    public function mapFromSyliusPayment(PaymentInterface $payment): Order;
+    public function mapFromSyliusPayment(PaymentInterface $payment, string $captureUrl, string $cancelUrl): Order;
 }

@@ -12,6 +12,9 @@ use Payum\Core\GatewayAwareInterface;
 use Payum\Core\GatewayAwareTrait;
 use Payum\Core\Reply\HttpRedirect;
 use Payum\Core\Request\Capture;
+use Payum\Core\Security\GenericTokenFactoryAwareInterface;
+use Payum\Core\Security\GenericTokenFactoryAwareTrait;
+use Payum\Core\Security\TokenInterface;
 use Psr\Log\LoggerInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface as SyliusPaymentInterface;
@@ -24,9 +27,9 @@ use Webmozart\Assert\Assert;
 /**
  * @psalm-suppress PropertyNotSetInConstructor Api and gateway are injected via container configuration
  */
-final class CaptureAction implements ActionInterface, GatewayAwareInterface, ApiAwareInterface
+final class CaptureAction implements ActionInterface, GatewayAwareInterface, GenericTokenFactoryAwareInterface, ApiAwareInterface
 {
-    use GatewayAwareTrait, ApiAwareTrait;
+    use GatewayAwareTrait, GenericTokenFactoryAwareTrait, ApiAwareTrait;
 
     public function __construct(
         private RouterInterface $router,
@@ -37,6 +40,9 @@ final class CaptureAction implements ActionInterface, GatewayAwareInterface, Api
         $this->apiClass = PausePayApi::class;
     }
 
+    /**
+     * @param Capture|mixed $request
+     */
     public function execute($request): void
     {
         RequestNotSupportedException::assertSupports($this, $request);
@@ -68,7 +74,24 @@ final class CaptureAction implements ActionInterface, GatewayAwareInterface, Api
             );
         }
 
-        $createOrderResult = $this->client->createOrder($this->orderMapper->mapFromSyliusPayment($payment));
+        // todo: verify urls
+        $captureToken = $request->getToken();
+        Assert::isInstanceOf($captureToken, TokenInterface::class);
+
+        $captureUrl = $captureToken->getTargetUrl();
+
+        $cancelToken = $this->tokenFactory->createToken(
+            $captureToken->getGatewayName(),
+            $captureToken->getDetails(),
+            'payum_cancel_do',
+            [],
+            $captureToken->getAfterUrl(),
+        );
+        $cancelUrl = $cancelToken->getTargetUrl();
+
+        $createOrderResult = $this->client->createOrder(
+            $this->orderMapper->mapFromSyliusPayment($payment, $captureUrl, $cancelUrl),
+        );
 
         $redirectUrl = $createOrderResult->getRedirectUrl();
         $this->logInfo(

@@ -13,8 +13,9 @@ use Webmozart\Assert\Assert;
 
 final class OrderMapper implements OrderMapperInterface
 {
-    public function mapFromSyliusPayment(PaymentInterface $payment): Order
+    public function mapFromSyliusPayment(PaymentInterface $payment, string $captureUrl, string $cancelUrl): Order
     {
+        // todo: there's english text that should be translated
         $order = $payment->getOrder();
         Assert::isInstanceOf($order, OrderInterface::class);
 
@@ -54,8 +55,8 @@ final class OrderMapper implements OrderMapperInterface
             $issueDate,
             $description,
             $description,
-            'https://ok', // todo
-            'https://ko', // todo
+            $captureUrl,
+            $cancelUrl,
             'Webgriffe SRL', // todo
             '02277170359', // todo
             'support@webgriffe.com',
@@ -68,7 +69,7 @@ final class OrderMapper implements OrderMapperInterface
         $createdAt = $order->getCheckoutCompletedAt();
         Assert::notNull($createdAt);
 
-        $descriptor = sprintf('Order #%s of %s', $number, $createdAt->format('Y-m-d'),);
+        $descriptor = sprintf('Order #%s of %s', $number, $createdAt->format('Y-m-d'), );
         $hostname = $order->getChannel()?->getHostname();
         if ($hostname !== null) {
             $descriptor .= ' on ' . $hostname;
