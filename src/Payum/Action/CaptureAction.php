@@ -17,7 +17,7 @@ use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface as SyliusPaymentInterface;
 use Symfony\Component\Routing\RouterInterface;
 use Webgriffe\SyliusPausePayPlugin\Client\ClientInterface;
-use Webgriffe\SyliusPausePayPlugin\Client\ValueObject\Order;
+use Webgriffe\SyliusPausePayPlugin\Mapper\OrderMapperInterface;
 use Webgriffe\SyliusPausePayPlugin\Payum\PausePayApi;
 use Webmozart\Assert\Assert;
 
@@ -32,6 +32,7 @@ final class CaptureAction implements ActionInterface, GatewayAwareInterface, Api
         private RouterInterface $router,
         private LoggerInterface $logger,
         private ClientInterface $client,
+        private OrderMapperInterface $orderMapper,
     ) {
         $this->apiClass = PausePayApi::class;
     }
@@ -67,9 +68,7 @@ final class CaptureAction implements ActionInterface, GatewayAwareInterface, Api
             );
         }
 
-        // todo
-        $order = new Order(1000, '000000012');
-        $createOrderResult = $this->client->createOrder($order);
+        $createOrderResult = $this->client->createOrder($this->orderMapper->mapFromSyliusPayment($payment));
 
         $redirectUrl = $createOrderResult->getRedirectUrl();
         $this->logInfo(

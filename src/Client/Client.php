@@ -31,7 +31,7 @@ final class Client implements ClientInterface
     public function createOrder(Order $order): CreateOrderResult
     {
         try {
-            $bodyParams = json_encode($order->toArrayParams(), \JSON_THROW_ON_ERROR);
+            $bodyParams = json_encode($order->toArray(), \JSON_THROW_ON_ERROR);
         } catch (JsonException $e) {
             $message = 'Malformed order create request body.';
             $this->logger->error($message, ['exception' => $e]);
