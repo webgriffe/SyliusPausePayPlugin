@@ -12,6 +12,6 @@ final class DummyCompanyInfoResolver implements CompanyInfoResolverInterface
 {
     public function resolveFromOrder(OrderInterface $order): CompanyInfo
     {
-        return new CompanyInfo('Webgriffe SRL', '02277170359', 'support@webgriffe.com');
+        return new CompanyInfo('Webgriffe SRL', '02277170359', 'support@webgriffe.com', 'pec@webgriffe.com');
     }
 }

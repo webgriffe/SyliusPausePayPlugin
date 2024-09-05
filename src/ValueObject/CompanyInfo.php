@@ -10,6 +10,7 @@ final class CompanyInfo
         private string $name,
         private string $vatNumber,
         private string $email,
+        private string $pec,
     ) {
     }
 
@@ -26,5 +27,10 @@ final class CompanyInfo
     public function getEmail(): string
     {
         return $this->email;
+    }
+
+    public function getPec(): string
+    {
+        return $this->pec;
     }
 }

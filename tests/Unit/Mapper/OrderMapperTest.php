@@ -57,6 +57,7 @@ final class OrderMapperTest extends TestCase
         self::assertSame('Webgriffe SRL', $pausePayOrder->getBuyerInfoName());
         self::assertSame('02277170359', $pausePayOrder->getBuyerInfoVatNumber());
         self::assertSame('support@webgriffe.com', $pausePayOrder->getBuyerInfoEmail());
+        self::assertSame('pec@webgriffe.com', $pausePayOrder->getBuyerInfoPec());
 
         $items = $pausePayOrder->getPurchasedItems();
         self::assertCount(3, $items);

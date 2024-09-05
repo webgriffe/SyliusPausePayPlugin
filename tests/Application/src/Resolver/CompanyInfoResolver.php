@@ -15,7 +15,8 @@ final class CompanyInfoResolver implements CompanyInfoResolverInterface
         return new CompanyInfo(
             'Azienda A',
             'IT73228252614',
-            'whatever@example.com'
+            'whatever@example.com',
+            'whatever@example.com',
         );
     }
 }

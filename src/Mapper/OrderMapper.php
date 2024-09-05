@@ -66,6 +66,7 @@ final class OrderMapper implements OrderMapperInterface
             $companyInfo->getName(),
             $companyInfo->getVatNumber(),
             $companyInfo->getEmail(),
+            $companyInfo->getPec(),
             $items,
         );
     }

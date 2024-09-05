@@ -22,6 +22,7 @@ final class Order implements ArrayableInterface
         private string $buyerInfoName,
         private string $buyerInfoVatNumber,
         private string $buyerInfoEmail,
+        private string $buyerInfoPec,
         private array $purchasedItems,
     ) {
     }
@@ -76,6 +77,11 @@ final class Order implements ArrayableInterface
         return $this->buyerInfoEmail;
     }
 
+    public function getBuyerInfoPec(): string
+    {
+        return $this->buyerInfoPec;
+    }
+
     /**
      * @return OrderItem[]
      */
@@ -104,6 +110,7 @@ final class Order implements ArrayableInterface
                 'name' => $this->buyerInfoName,
                 'vatCode' => $this->buyerInfoVatNumber,
                 'email' => $this->buyerInfoEmail,
+                'pec' => $this->buyerInfoPec,
             ],
             'items' => $items,
             'allowSCTPayment' => true, // if PausePay is not available, allow to pay by classic instant Wire Bank?
