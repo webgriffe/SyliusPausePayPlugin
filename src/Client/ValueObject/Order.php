@@ -94,7 +94,7 @@ final class Order implements ArrayableInterface
         return [
             'amount' => $this->amount,
             'number' => $this->number,
-            'issueDate' => $this->issueDate->format('d-m-Y H:i'), // today as date DD/MM/YYYY HH:mm
+            'issueDate' => $this->issueDate->format('d/m/Y H:i'), // today as date DD/MM/YYYY HH:mm
             'description' => $this->description,
             'remittance' => $this->remittance,
             'okRedirect' => $this->okRedirectUrl,
