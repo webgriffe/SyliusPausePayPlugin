@@ -14,6 +14,7 @@ return static function (ContainerConfigurator $containerConfigurator) {
         ->args(
             [
                 service('sylius.repository.payment_method'),
+                service('sylius.context.channel'),
             ]
         );
 };
