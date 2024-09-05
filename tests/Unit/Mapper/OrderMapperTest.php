@@ -39,22 +39,26 @@ final class OrderMapperTest extends TestCase
 
     public function test_it_maps_sylius_payment_to_pausepay_order(): void
     {
-        $payment = $this->getPayment();
+        $order = $this->getBaseOrder();
+        $this->addShippingCost($order);
+        $order->addItem($this->getOrderItemWithUnit('Star Wars Mug', 5067, 2));
+        $order->addItem($this->getOrderItemWithUnit('Obi Wan Kenobi action figure', 10000, 1));
+        $this->addTaxesToOrderItems($order);
 
-        $order = $this->mapper->mapFromSyliusPayment($payment, 'https://ok', 'https://ko');
+        $pausePayOrder = $this->mapper->mapFromSyliusPayment($this->getPayment($order), 'https://ok', 'https://ko');
 
-        self::assertSame(260.62, $order->getAmount());
-        self::assertSame('000001732', $order->getNumber());
-        self::assertSame('2024-09-01 12:30:00', $order->getIssueDate()->format('Y-m-d H:i:s'));
-        self::assertSame('Order #000001732 of 2024-09-01 on mywebsite.com', $order->getDescription());
-        self::assertSame('Order #000001732 of 2024-09-01 on mywebsite.com', $order->getRemittance());
-        self::assertSame('https://ok', $order->getOkRedirectUrl());
-        self::assertSame('https://ko', $order->getKoRedirectUrl());
-        self::assertSame('Webgriffe SRL', $order->getBuyerInfoName());
-        self::assertSame('02277170359', $order->getBuyerInfoVatNumber());
-        self::assertSame('support@webgriffe.com', $order->getBuyerInfoEmail());
+        self::assertSame(260.62, $pausePayOrder->getAmount());
+        self::assertSame('000001732', $pausePayOrder->getNumber());
+        self::assertSame('2024-09-01 12:30:00', $pausePayOrder->getIssueDate()->format('Y-m-d H:i:s'));
+        self::assertSame('Order #000001732 of 2024-09-01 on mywebsite.com', $pausePayOrder->getDescription());
+        self::assertSame('Order #000001732 of 2024-09-01 on mywebsite.com', $pausePayOrder->getRemittance());
+        self::assertSame('https://ok', $pausePayOrder->getOkRedirectUrl());
+        self::assertSame('https://ko', $pausePayOrder->getKoRedirectUrl());
+        self::assertSame('Webgriffe SRL', $pausePayOrder->getBuyerInfoName());
+        self::assertSame('02277170359', $pausePayOrder->getBuyerInfoVatNumber());
+        self::assertSame('support@webgriffe.com', $pausePayOrder->getBuyerInfoEmail());
 
-        $items = $order->getPurchasedItems();
+        $items = $pausePayOrder->getPurchasedItems();
         self::assertCount(3, $items);
 
         self::assertSame($items[0]->getName(), 'Star Wars Mug');
@@ -70,25 +74,56 @@ final class OrderMapperTest extends TestCase
         self::assertSame($items[2]->getAmount(), 15.0);
     }
 
-    private function getPayment(): PaymentInterface
+    public function test_it_maps_sylius_payment_with_various_discounts_to_pausepay_order(): void
     {
-        $payment = new Payment();
-        $payment->setCurrencyCode('EUR');
+        $order = $this->getBaseOrder();
+        $this->addShippingCost($order);
 
+        // order discount of 50€, so it is 50/5 = 10 per item
+        $item1 = $this->getOrderItemWithUnit('Star Wars Mug', 5067, 2, 1203, 1000);
+        $order->addItem($item1);
+        $item2 = $this->getOrderItemWithUnit('Obi Wan Kenobi action figure', 10000, 3, 1000, 1000);
+        $order->addItem($item2);
+        $this->addTaxesToOrderItems($order);
+
+        self::assertSame(37768, $order->getTotal()); // ((5067-1203-1000)*1.22)*2 + ((10000-1000-1000)*1.22)*3 + 1500
+
+        $pausePayOrder = $this->mapper->mapFromSyliusPayment($this->getPayment($order), 'https://ok', 'https://ko');
+
+        self::assertSame(377.68, $pausePayOrder->getAmount());
+
+        $items = $pausePayOrder->getPurchasedItems();
+        self::assertCount(3, $items);
+
+        self::assertSame($items[0]->getName(), 'Star Wars Mug');
+        self::assertSame($items[0]->getQuantity(), 2);
+        self::assertSame($items[0]->getAmount(), 34.94); // (50.67-12.03-10.00)*1.22
+
+        self::assertSame($items[1]->getName(), 'Obi Wan Kenobi action figure');
+        self::assertSame($items[1]->getQuantity(), 3);
+        self::assertSame($items[1]->getAmount(), 97.60); // (100.00-10.00-10.00)*1.22
+
+        self::assertSame($items[2]->getName(), 'Shipping');
+        self::assertSame($items[2]->getQuantity(), 1);
+        self::assertSame($items[2]->getAmount(), 15.0);
+    }
+
+    private function getPayment(OrderInterface $order): PaymentInterface
+    {
         $paymentMethod = new PaymentMethod();
         $paymentMethod->setCode('pausepay');
         $paymentMethod->setGatewayConfig(new GatewayConfig());
+
+        $payment = new Payment();
         $payment->setMethod($paymentMethod);
-
-        $order = $this->getOrder();
+        $payment->setCurrencyCode('EUR');
         $payment->setOrder($order);
-
         $payment->setAmount($order->getTotal());
 
         return $payment;
     }
 
-    private function getOrder(): OrderInterface
+    private function getBaseOrder(): OrderInterface
     {
         $order = new Order();
         $order->setNumber('000001732');
@@ -101,14 +136,6 @@ final class OrderMapperTest extends TestCase
         $order->setChannel($channel);
 
         $order->setCustomer($this->getCustomer());
-
-        $shippingCost = 1230;
-        $order->addAdjustment($this->getShippingAdjustment($shippingCost));
-        $order->addAdjustment($this->getTaxAdjustment((int) (round($shippingCost * 0.22, 2))));
-
-        $order->addItem($this->getOrderItemWithUnit('Star Wars Mug', 5067, 2));
-        $order->addItem($this->getOrderItemWithUnit('Obi Wan Kenobi action figure', 10000, 1));
-        $this->addTaxesToOrderItems($order);
 
         return $order;
     }
@@ -123,13 +150,29 @@ final class OrderMapperTest extends TestCase
         return $customer;
     }
 
-    private function getOrderItemWithUnit(string $name, int $unitPrice, int $quantity): OrderItem
-    {
+    private function getOrderItemWithUnit(
+        string $name,
+        int $unitPrice,
+        int $quantity,
+        ?int $itemUnitAdjustmentUnitAmount = null,
+        ?int $orderAdjustmentUnitAmount = null
+    ): OrderItem {
         $orderItem = new OrderItem();
         $orderItem->setUnitPrice($unitPrice);
         $orderItem->setVariantName($name);
         for ($i = 0; $i < $quantity; ++$i) {
-            new OrderItemUnit($orderItem);
+            $orderItemUnit = new OrderItemUnit($orderItem);
+            if ($itemUnitAdjustmentUnitAmount !== null) {
+                $orderItemUnit->addAdjustment(
+                    $this->getDiscountAdjustment(
+                        $itemUnitAdjustmentUnitAmount,
+                        AdjustmentInterface::ORDER_UNIT_PROMOTION_ADJUSTMENT
+                    )
+                );
+            }
+            if ($orderAdjustmentUnitAmount !== null) {
+                $orderItemUnit->addAdjustment($this->getDiscountAdjustment($orderAdjustmentUnitAmount));
+            }
         }
 
         return $orderItem;
@@ -155,6 +198,16 @@ final class OrderMapperTest extends TestCase
         return $adjustment;
     }
 
+    private function getDiscountAdjustment(int $amount, string $type = AdjustmentInterface::ORDER_PROMOTION_ADJUSTMENT): AdjustmentInterface
+    {
+        $adjustment = new Adjustment();
+        $adjustment->setType($type);
+        $adjustment->setAmount(-$amount);
+        $adjustment->setNeutral(false);
+
+        return $adjustment;
+    }
+
     private function addTaxesToOrderItems(OrderInterface $order, float $taxRate = 0.22): void
     {
         /** @var OrderItemInterface $item */
@@ -165,5 +218,12 @@ final class OrderMapperTest extends TestCase
                 $unit->addAdjustment($this->getTaxAdjustment((int) ($itemTaxTotal / count($item->getUnits()))));
             }
         }
+    }
+
+    private function addShippingCost(Order $order): void
+    {
+        $shippingCost = 1230;
+        $order->addAdjustment($this->getShippingAdjustment($shippingCost));
+        $order->addAdjustment($this->getTaxAdjustment((int) (round($shippingCost * 0.22, 2))));
     }
 }
