@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
+use Webgriffe\SyliusPausePayPlugin\Payum\Action\CancelAction;
 use Webgriffe\SyliusPausePayPlugin\Payum\Action\CaptureAction;
 use Webgriffe\SyliusPausePayPlugin\Payum\Action\StatusAction;
 use Webgriffe\SyliusPausePayPlugin\Payum\PausePayApi;
@@ -30,4 +31,15 @@ return static function (ContainerConfigurator $containerConfigurator) {
                 service('webgriffe_sylius_pausepay.logger'),
             ]
         );
+
+    $services->set('webgriffe_sylius_pausepay.payum.action.cancel', CancelAction::class)
+        ->public()
+        ->args([
+            service('webgriffe_sylius_pausepay.logger'),
+            service('doctrine.orm.entity_manager'),
+            service('sm.factory'),
+            service('sylius.order_processing.order_payment_processor.checkout'),
+        ])
+        ->tag('payum.action', ['factory' => PausePayApi::GATEWAY_CODE, 'alias' => 'payum.action.cancel']);
+
 };
