@@ -109,6 +109,43 @@ final class OrderMapperTest extends TestCase
         self::assertSame($items[2]->getAmount(), 15.0);
     }
 
+    public function test_it_maps_sylius_payment_with_maximum_two_decimals_on_amounts(): void
+    {
+        $order = $this->getBaseOrder();
+
+        $orderItem = new OrderItem();
+        $orderItem->setUnitPrice(8775);
+        $orderItem->setVariantName('Star Wars Mug');
+        $orderItemUnit = new OrderItemUnit($orderItem);
+        $orderItemUnit->addAdjustment($this->getDiscountAdjustment(75, AdjustmentInterface::ORDER_UNIT_PROMOTION_ADJUSTMENT));
+        $orderItemUnit->addAdjustment($this->getDiscountAdjustment(1000));
+        $orderItemUnit = new OrderItemUnit($orderItem);
+        $orderItemUnit->addAdjustment($this->getDiscountAdjustment(74, AdjustmentInterface::ORDER_UNIT_PROMOTION_ADJUSTMENT));
+        $orderItemUnit->addAdjustment($this->getDiscountAdjustment(1000));
+        $orderItemUnit = new OrderItemUnit($orderItem);
+        $orderItemUnit->addAdjustment($this->getDiscountAdjustment(74, AdjustmentInterface::ORDER_UNIT_PROMOTION_ADJUSTMENT));
+        $orderItemUnit->addAdjustment($this->getDiscountAdjustment(1000));
+        $orderItemUnit = new OrderItemUnit($orderItem);
+        $orderItemUnit->addAdjustment($this->getDiscountAdjustment(74, AdjustmentInterface::ORDER_UNIT_PROMOTION_ADJUSTMENT));
+        $orderItemUnit->addAdjustment($this->getDiscountAdjustment(1000));
+        $orderItemUnit = new OrderItemUnit($orderItem);
+        $orderItemUnit->addAdjustment($this->getDiscountAdjustment(74, AdjustmentInterface::ORDER_UNIT_PROMOTION_ADJUSTMENT));
+        $orderItemUnit->addAdjustment($this->getDiscountAdjustment(1000));
+        $order->addItem($orderItem);
+
+        self::assertSame(38504, $order->getTotal());
+
+        $pausePayOrder = $this->mapper->mapFromSyliusPayment($this->getPayment($order), 'https://ok', 'https://ko');
+
+        self::assertSame(385.04, $pausePayOrder->getAmount());
+
+        $items = $pausePayOrder->getPurchasedItems();
+
+        self::assertSame($items[0]->getName(), 'Star Wars Mug');
+        self::assertSame($items[0]->getQuantity(), 5);
+        self::assertSame($items[0]->getAmount(), 77.01); // this should be 77.008 but it is rounded to 77.01
+    }
+
     private function getPayment(OrderInterface $order): PaymentInterface
     {
         $paymentMethod = new PaymentMethod();

@@ -40,23 +40,24 @@ final class OrderMapper implements OrderMapperInterface
                 $itemName = $orderItem->getProductName();
             }
 
+            // todo: with the rounding we are losing some cents, we should compensate this
             $items[] = new OrderItem(
                 $itemName ?? '',
                 $orderItem->getQuantity(),
-                ($orderItem->getTotal() / $orderItem->getQuantity()) / 100,
+                $this->formatPriceForPausepay($orderItem->getTotal() / $orderItem->getQuantity()),
             );
         }
 
         $shippingTotal = $order->getShippingTotal();
         if ($shippingTotal > 0) {
-            $items[] = new OrderItem('Shipping', 1, $shippingTotal / 100);
+            $items[] = new OrderItem('Shipping', 1, $this->formatPriceForPausepay($shippingTotal));
         }
 
         $description = $this->getOrderDescription($order, $number);
         $companyInfo = $this->companyInfoResolver->resolveFromOrder($order);
 
         return new Order(
-            $amount / 100,
+            $this->formatPriceForPausepay($amount),
             $number,
             $issueDate,
             $description,
@@ -83,5 +84,10 @@ final class OrderMapper implements OrderMapperInterface
         }
 
         return $descriptor;
+    }
+
+    private function formatPriceForPausepay(float|int $orderItemUnitPrice): float
+    {
+        return round($orderItemUnitPrice / 100, 2);
     }
 }
