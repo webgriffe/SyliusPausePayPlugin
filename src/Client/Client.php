@@ -63,7 +63,7 @@ final class Client implements ClientInterface
         $bodyContents = $response->getBody()->getContents();
         $this->logger->debug('Create order request response: ' . $bodyContents);
 
-        if ($response->getStatusCode() !== 201) {
+        if (!in_array($response->getStatusCode(), [200, 201], true)) {
             $message = sprintf(
                 'Unexpected create order response status code: %s - "%s".',
                 $response->getStatusCode(),
@@ -75,7 +75,7 @@ final class Client implements ClientInterface
         }
 
         try {
-            /** @var array{redirect_url: string, id: string} $serializedResponse */
+            /** @var array{url: string, id: string} $serializedResponse */
             $serializedResponse = json_decode($bodyContents, true, 512, \JSON_THROW_ON_ERROR, );
         } catch (JsonException $e) {
             $message = sprintf('Malformed create order response body: "%s".', $bodyContents, );
@@ -85,7 +85,7 @@ final class Client implements ClientInterface
         }
 
         return new CreateOrderResult(
-            $serializedResponse['redirect_url'],
+            $serializedResponse['url'],
             $serializedResponse['id'],
             new DateTimeImmutable(),
         );
