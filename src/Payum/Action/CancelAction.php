@@ -14,10 +14,12 @@ use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface as SyliusPaymentInterface;
 use Sylius\Component\Order\Processor\OrderProcessorInterface;
 use Sylius\Component\Payment\PaymentTransitions;
+use Webgriffe\SyliusPausePayPlugin\Client\PaymentState;
+use Webgriffe\SyliusPausePayPlugin\Helper\PaymentDetailsHelper;
 use Webmozart\Assert\Assert;
 
 /**
- * @psalm-type PaymentDetails array{contract_uuid: string, redirect_url: string, created_at: string, status?: string}
+ * @psalm-type PaymentDetails array{uuid: string, redirect_url: string, created_at: string, status?: string}
  */
 final class CancelAction implements ActionInterface
 {
@@ -52,6 +54,10 @@ final class CancelAction implements ActionInterface
             return;
         }
 
+        /** @var PaymentDetails $paymentDetails */
+        $paymentDetails = $payment->getDetails();
+        PaymentDetailsHelper::assertPaymentDetailsAreValid($paymentDetails);
+
         $paymentStateMachine->apply(PaymentTransitions::TRANSITION_CANCEL);
         $this->logInfo($payment, 'Cancelled payment. Start processing order.');
 
@@ -66,6 +72,12 @@ final class CancelAction implements ActionInterface
 
         $this->orderPaymentProcessor->process($order);
         $this->objectManager->flush();
+
+        $paymentDetails = PaymentDetailsHelper::addPaymentStatus(
+            $paymentDetails,
+            PaymentState::CANCELLED,
+        );
+        $payment->setDetails($paymentDetails);
 
         $this->logInfo($payment, 'Order processed and flushed.');
     }

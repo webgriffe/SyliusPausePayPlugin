@@ -9,10 +9,12 @@ use Payum\Core\Exception\RequestNotSupportedException;
 use Psr\Log\LoggerInterface;
 use Sylius\Bundle\PayumBundle\Request\GetStatus;
 use Sylius\Component\Core\Model\PaymentInterface as SyliusPaymentInterface;
+use Webgriffe\SyliusPausePayPlugin\Client\PaymentState;
+use Webgriffe\SyliusPausePayPlugin\Helper\PaymentDetailsHelper;
 use Webmozart\Assert\Assert;
 
 /**
- * @psalm-type PaymentDetails array{contract_uuid: string, redirect_url: string, created_at: string, status?: string}
+ * @psalm-type PaymentDetails array{uuid: string, redirect_url: string, created_at: string, status?: string}
  */
 final class StatusAction implements ActionInterface
 {
@@ -49,16 +51,26 @@ final class StatusAction implements ActionInterface
             return;
         }
 
-        if (200 === $paymentDetails['status']) {
-            $this->logInfo($payment, 'Payment successfully or awaiting confirmation. Payment marked as captured.');
-            $request->markCaptured();
+        if (!PaymentDetailsHelper::areValid($paymentDetails)) {
+            $this->logger->info('Payment details not valid. Payment marked as failed');
+            $request->markFailed();
 
             return;
         }
 
-        if (400 === $paymentDetails['status']) {
-            $this->logInfo($payment, 'Payment cancelled or pending. Payment marked as canceled.');
+        /** @psalm-suppress InvalidArgument */
+        $paymentStatus = PaymentDetailsHelper::getPaymentStatus($paymentDetails);
+
+        if (in_array($paymentStatus, [PaymentState::CANCELLED, PaymentState::PENDING], true)) {
+            $this->logger->info('Payment cancelled or pending. Payment marked as canceled.');
             $request->markCanceled();
+
+            return;
+        }
+
+        if (in_array($paymentStatus, [PaymentState::SUCCESS, PaymentState::AWAITING_CONFIRMATION], true)) {
+            $this->logger->info('Payment successfully or awaiting confirmation. Payment marked as captured.');
+            $request->markCaptured();
 
             return;
         }

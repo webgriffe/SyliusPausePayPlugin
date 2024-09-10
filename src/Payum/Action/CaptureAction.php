@@ -20,6 +20,8 @@ use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface as SyliusPaymentInterface;
 use Symfony\Component\Routing\RouterInterface;
 use Webgriffe\SyliusPausePayPlugin\Client\ClientInterface;
+use Webgriffe\SyliusPausePayPlugin\Client\PaymentState;
+use Webgriffe\SyliusPausePayPlugin\Helper\PaymentDetailsHelper;
 use Webgriffe\SyliusPausePayPlugin\Mapper\OrderMapperInterface;
 use Webgriffe\SyliusPausePayPlugin\Payum\PausePayApi;
 use Webmozart\Assert\Assert;
@@ -56,7 +58,16 @@ final class CaptureAction implements ActionInterface, GatewayAwareInterface, Gen
         $paymentDetails = $payment->getDetails();
 
         if ($paymentDetails !== []) {
-            // todo
+            if (!PaymentDetailsHelper::areValid($paymentDetails)) {
+                $this->logger->error('Payment details are already populated with others data. Maybe this payment should be marked as error');
+                $payment->setDetails(PaymentDetailsHelper::addPaymentStatus(
+                    $paymentDetails,
+                    PaymentState::CANCELLED,
+                ));
+
+                return;
+            }
+
             $this->logInfo(
                 $payment,
                 'PausePay payment details are already valued, so no need to continue here.' .
@@ -100,6 +111,10 @@ final class CaptureAction implements ActionInterface, GatewayAwareInterface, Gen
                 'Redirecting the user to the PausePay redirect URL "%s".',
                 $redirectUrl,
             ),
+        );
+
+        $payment->setDetails(
+            PaymentDetailsHelper::createFromContractCreateResult($createOrderResult),
         );
 
         throw new HttpRedirect($redirectUrl);
