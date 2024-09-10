@@ -24,6 +24,7 @@ use Sylius\Component\Core\Model\PaymentMethod;
 use Sylius\Component\Core\OrderPaymentStates;
 use Sylius\Component\Order\Model\OrderItemUnitInterface;
 use Tests\Webgriffe\SyliusPausePayPlugin\Service\Resolver\DummyCompanyInfoResolver;
+use Webgriffe\SyliusPausePayPlugin\Mapper\NumberResolver;
 use Webgriffe\SyliusPausePayPlugin\Mapper\OrderMapper;
 use Webgriffe\SyliusPausePayPlugin\Mapper\OrderMapperInterface;
 
@@ -33,7 +34,7 @@ final class OrderMapperTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->mapper = new OrderMapper(new DummyCompanyInfoResolver());
+        $this->mapper = new OrderMapper(new DummyCompanyInfoResolver(), new NumberResolver());
         Carbon::setTestNow('2024-09-01 12:30:00');
     }
 

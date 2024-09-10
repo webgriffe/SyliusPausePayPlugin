@@ -13,6 +13,7 @@ return static function (ContainerConfigurator $containerConfigurator) {
         ->args(
             [
                 service('webgriffe_sylius_pausepay.resolver.company_info'),
+                service('webgriffe_sylius_pausepay.resolver.number'),
             ]
         );
 };

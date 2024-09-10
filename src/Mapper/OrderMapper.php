@@ -14,8 +14,10 @@ use Webmozart\Assert\Assert;
 
 final class OrderMapper implements OrderMapperInterface
 {
-    public function __construct(private CompanyInfoResolverInterface $companyInfoResolver)
-    {
+    public function __construct(
+        private CompanyInfoResolverInterface $companyInfoResolver,
+        private NumberResolverInterface $numberResolver,
+    ) {
     }
 
     public function mapFromSyliusPayment(PaymentInterface $payment, string $captureUrl, string $cancelUrl): Order
@@ -58,7 +60,7 @@ final class OrderMapper implements OrderMapperInterface
 
         return new Order(
             $this->formatPriceForPausepay($amount),
-            $number,
+            $this->numberResolver->resolveFromOrder($order),
             $issueDate,
             $description,
             $description,
