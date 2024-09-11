@@ -1,0 +1,30 @@
+Sylius\Component\Core\Model\Order:
+    orderToShip:
+        number: '000000123'
+        currency_code: 'EUR'
+        locale_code: 'it_IT'
+        state: new
+        checkoutState: completed
+        paymentState: awaiting_payment
+        shippingState: ready
+        items: ['@orderToShip_item']
+        customer: '@italian_customer'
+        payments: ['@payment_orderToShip']
+        checkoutCompletedAt: '<(new DateTime())>'
+
+Sylius\Component\Core\Model\OrderItem:
+    orderToShip_item:
+        order: '@orderToShip'
+        variant: '@product_1_variant_1'
+        unit_price: 1999
+        
+Sylius\Component\Core\Model\OrderItemUnit:
+    orderToShip_item_unit:
+        __construct: ['@orderToShip_item']
+
+Sylius\Component\Core\Model\Payment:
+    payment_orderToShip:
+        method: '@pausepay_method'
+        order: '@orderToShip'
+        currency_code: 'EUR'
+        state: 'new'

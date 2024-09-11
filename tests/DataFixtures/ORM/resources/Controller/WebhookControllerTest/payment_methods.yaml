@@ -1,0 +1,10 @@
+Sylius\Component\Core\Model\PaymentMethod:
+    pausepay_method:
+        code: 'pausepay'
+        gatewayConfig: '@pausepay_gateway'
+
+Sylius\Bundle\PayumBundle\Model\GatewayConfig:
+    pausepay_gateway:
+        gatewayName: 'PausePay'
+        factoryName: 'pausepay'
+        config: []

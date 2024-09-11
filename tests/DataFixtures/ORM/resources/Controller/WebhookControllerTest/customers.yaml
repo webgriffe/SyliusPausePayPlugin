@@ -1,0 +1,5 @@
+Sylius\Component\Core\Model\Customer:
+    italian_customer:
+        email: 'ita@email.it'
+        first_name: 'Nome'
+        last_name: 'Cognome'

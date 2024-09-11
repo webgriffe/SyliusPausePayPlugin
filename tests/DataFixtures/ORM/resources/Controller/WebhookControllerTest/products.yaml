@@ -1,0 +1,13 @@
+Sylius\Component\Core\Model\Product:
+    product_1:
+        code: 'product_1'
+        variants: ['@product_1_variant_1', '@product_1_variant_2']
+
+Sylius\Component\Core\Model\ProductVariant:
+    product_1_variant_1:
+        code: 'product_1_variant_1'
+        product: '@product_1'
+    product_1_variant_2:
+        code: 'product_1_variant_2'
+        product: '@product_1'
+
