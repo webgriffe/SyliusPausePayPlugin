@@ -47,7 +47,7 @@ final class CancelAction implements ActionInterface
         $paymentDetails = $payment->getDetails();
         PaymentDetailsHelper::assertPaymentDetailsAreValid($paymentDetails);
 
-        $this->logger->info('Redirecting the user to the Sylius Pagolight waiting page.');
+        $this->logInfo($payment, 'Redirecting the user to the Sylius PausePay waiting page.');
 
         $order = $payment->getOrder();
         Assert::isInstanceOf($order, OrderInterface::class);
@@ -59,8 +59,8 @@ final class CancelAction implements ActionInterface
         $payment->setDetails($paymentDetails);
 
         throw new HttpRedirect(
-            $this->router->generate('webgriffe_sylius_pagolight_plugin_payment_process', [
-                'tokenValue' => $order->getTokenValue(),
+            $this->router->generate('webgriffe_sylius_pausepay_plugin_payment_process', [
+                'payumToken' => $order->getTokenValue(),
                 '_locale' => $order->getLocaleCode(),
             ]),
         );
@@ -73,6 +73,6 @@ final class CancelAction implements ActionInterface
 
     private function logInfo(SyliusPaymentInterface $payment, string $message, array $context = []): void
     {
-        $this->logger->info(sprintf('[Payment #%s]: %s.', (string) $payment->getId(), $message,), $context);
+        $this->logger->info(sprintf('[Payment #%s]: %s.', (string) $payment->getId(), $message, ), $context);
     }
 }

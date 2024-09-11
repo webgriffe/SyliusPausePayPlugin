@@ -36,9 +36,7 @@ return static function (ContainerConfigurator $containerConfigurator) {
         ->public()
         ->args([
             service('webgriffe_sylius_pausepay.logger'),
-            service('doctrine.orm.entity_manager'),
-            service('sm.factory'),
-            service('sylius.order_processing.order_payment_processor.checkout'),
+            service('router'),
         ])
         ->tag('payum.action', ['factory' => PausePayApi::GATEWAY_CODE, 'alias' => 'payum.action.cancel']);
 

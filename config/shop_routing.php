@@ -5,5 +5,8 @@ declare(strict_types=1);
 use Symfony\Component\Routing\Loader\Configurator\RoutingConfigurator;
 
 return static function (RoutingConfigurator $routes): void {
-    // todo
+    $routes->add('webgriffe_sylius_pausepay_plugin_payment_process', '/payment/{payumToken}/pausepay-process')
+        ->controller(['webgriffe_sylius_pausepay.controller.payment', 'processAction'])
+        ->methods(['GET'])
+    ;
 };

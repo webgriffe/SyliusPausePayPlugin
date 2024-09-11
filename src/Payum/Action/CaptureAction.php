@@ -55,6 +55,9 @@ final class CaptureAction implements ActionInterface, GatewayAwareInterface, Gen
 
         $this->logInfo($payment, 'Start capture action', );
 
+        $captureToken = $request->getToken();
+        Assert::isInstanceOf($captureToken, TokenInterface::class);
+
         $paymentDetails = $payment->getDetails();
 
         if ($paymentDetails !== []) {
@@ -79,15 +82,11 @@ final class CaptureAction implements ActionInterface, GatewayAwareInterface, Gen
 
             throw new HttpRedirect(
                 $this->router->generate('webgriffe_sylius_pausepay_plugin_payment_process', [
-                    'tokenValue' => $order->getTokenValue(),
+                    'payumToken' => $captureToken->getHash(),
                     '_locale' => $order->getLocaleCode(),
                 ]),
             );
         }
-
-        // todo: verify urls
-        $captureToken = $request->getToken();
-        Assert::isInstanceOf($captureToken, TokenInterface::class);
 
         $captureUrl = $captureToken->getTargetUrl();
 
