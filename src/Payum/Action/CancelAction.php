@@ -4,16 +4,14 @@ declare(strict_types=1);
 
 namespace Webgriffe\SyliusPausePayPlugin\Payum\Action;
 
-use Doctrine\Persistence\ObjectManager;
 use Payum\Core\Action\ActionInterface;
 use Payum\Core\Exception\RequestNotSupportedException;
+use Payum\Core\Reply\HttpRedirect;
 use Payum\Core\Request\Cancel;
 use Psr\Log\LoggerInterface;
-use SM\Factory\FactoryInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface as SyliusPaymentInterface;
-use Sylius\Component\Order\Processor\OrderProcessorInterface;
-use Sylius\Component\Payment\PaymentTransitions;
+use Symfony\Component\Routing\RouterInterface;
 use Webgriffe\SyliusPausePayPlugin\Client\PaymentState;
 use Webgriffe\SyliusPausePayPlugin\Helper\PaymentDetailsHelper;
 use Webmozart\Assert\Assert;
@@ -25,9 +23,7 @@ final class CancelAction implements ActionInterface
 {
     public function __construct(
         private LoggerInterface $logger,
-        private ObjectManager $objectManager,
-        private FactoryInterface $stateMachineFactory,
-        private OrderProcessorInterface $orderPaymentProcessor,
+        private RouterInterface $router,
     ) {
     }
 
@@ -47,31 +43,14 @@ final class CancelAction implements ActionInterface
 
         $this->logInfo($payment, 'Start cancel action');
 
-        $paymentStateMachine = $this->stateMachineFactory->get($payment, PaymentTransitions::GRAPH);
-        if (!$paymentStateMachine->can(PaymentTransitions::TRANSITION_CANCEL)) {
-            $this->logInfo($payment, 'Payment cannot be cancelled.');
-
-            return;
-        }
-
         /** @var PaymentDetails $paymentDetails */
         $paymentDetails = $payment->getDetails();
         PaymentDetailsHelper::assertPaymentDetailsAreValid($paymentDetails);
 
-        $paymentStateMachine->apply(PaymentTransitions::TRANSITION_CANCEL);
-        $this->logInfo($payment, 'Cancelled payment. Start processing order.');
+        $this->logger->info('Redirecting the user to the Sylius Pagolight waiting page.');
 
-        /** @var SyliusPaymentInterface $lastPayment */
-        $lastPayment = $order->getLastPayment();
-        if ($lastPayment->getState() === SyliusPaymentInterface::STATE_NEW) {
-            $this->objectManager->flush();
-            $this->logInfo($payment, 'Order flushed.');
-
-            return;
-        }
-
-        $this->orderPaymentProcessor->process($order);
-        $this->objectManager->flush();
+        $order = $payment->getOrder();
+        Assert::isInstanceOf($order, OrderInterface::class);
 
         $paymentDetails = PaymentDetailsHelper::addPaymentStatus(
             $paymentDetails,
@@ -79,7 +58,12 @@ final class CancelAction implements ActionInterface
         );
         $payment->setDetails($paymentDetails);
 
-        $this->logInfo($payment, 'Order processed and flushed.');
+        throw new HttpRedirect(
+            $this->router->generate('webgriffe_sylius_pagolight_plugin_payment_process', [
+                'tokenValue' => $order->getTokenValue(),
+                '_locale' => $order->getLocaleCode(),
+            ]),
+        );
     }
 
     public function supports($request): bool
@@ -89,6 +73,6 @@ final class CancelAction implements ActionInterface
 
     private function logInfo(SyliusPaymentInterface $payment, string $message, array $context = []): void
     {
-        $this->logger->info(sprintf('[Payment #%s]: %s.', (string) $payment->getId(), $message, ), $context);
+        $this->logger->info(sprintf('[Payment #%s]: %s.', (string) $payment->getId(), $message,), $context);
     }
 }
