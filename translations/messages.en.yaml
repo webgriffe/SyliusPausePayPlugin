@@ -1,0 +1,10 @@
+webgriffe_sylius_pausepay:
+    ui:
+        return_to_pausepay_checkout: 'Return to PausePay checkout'
+        processing_payment: 'Your payment is being processed!'
+        please_wait: 'Please wait until you see a new status page'
+        loading: 'Loading'
+    form:
+        gateway_configuration:
+            api_key: 'API key'
+            sandbox: 'Sandbox mode'

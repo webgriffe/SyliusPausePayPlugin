@@ -1,0 +1,3 @@
+webgriffe_sylius_pausepay:
+    payment_method:
+        unique: 'Für dieses Gateway sollte es nur eine Zahlungsmethode geben.'
