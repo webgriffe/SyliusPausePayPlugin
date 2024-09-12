@@ -19,15 +19,4 @@ return static function (ContainerConfigurator $containerConfigurator) {
         ->call('setContainer', [service('service_container')])
         ->tag('controller.service_arguments')
     ;
-
-    $services->set('webgriffe_sylius_pausepay.controller.webhook', WebhookController::class)
-        ->args([
-            service('serializer'),
-            service('sylius.repository.payment'),
-            service('sylius.repository.payment'),
-            service('webgriffe_sylius_pausepay.logger'),
-        ])
-        ->call('setContainer', [service('service_container')])
-        ->tag('controller.service_arguments')
-    ;
 };

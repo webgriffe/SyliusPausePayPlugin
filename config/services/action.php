@@ -6,6 +6,8 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
 use Webgriffe\SyliusPausePayPlugin\Payum\Action\CancelAction;
 use Webgriffe\SyliusPausePayPlugin\Payum\Action\CaptureAction;
+use Webgriffe\SyliusPausePayPlugin\Payum\Action\NotifyAction;
+use Webgriffe\SyliusPausePayPlugin\Payum\Action\NotifyNullAction;
 use Webgriffe\SyliusPausePayPlugin\Payum\Action\StatusAction;
 use Webgriffe\SyliusPausePayPlugin\Payum\PausePayApi;
 
@@ -39,5 +41,22 @@ return static function (ContainerConfigurator $containerConfigurator) {
             service('router'),
         ])
         ->tag('payum.action', ['factory' => PausePayApi::GATEWAY_CODE, 'alias' => 'payum.action.cancel']);
+
+    $services->set('webgriffe_sylius_pausepay.payum.action.notify_null', NotifyNullAction::class)
+        ->public()
+        ->args([
+            service('serializer'),
+            service('webgriffe_sylius_pausepay.repository.payment_order'),
+            service('webgriffe_sylius_pausepay.logger'),
+        ])
+        ->tag('payum.action', ['factory' => PausePayApi::GATEWAY_CODE, 'alias' => 'payum.action.notify_null']);
+
+    $services->set('webgriffe_sylius_pausepay.payum.action.notify', NotifyAction::class)
+        ->public()
+        ->args([
+            service('serializer'),
+            service('webgriffe_sylius_pausepay.logger'),
+        ])
+        ->tag('payum.action', ['factory' => PausePayApi::GATEWAY_CODE, 'alias' => 'payum.action.notify']);
 
 };

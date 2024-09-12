@@ -9,9 +9,4 @@ return static function (RoutingConfigurator $routes): void {
         ->controller(['webgriffe_sylius_pausepay.controller.payment', 'statusAction'])
         ->methods(['GET'])
     ;
-
-    $routes->add('webgriffe_sylius_pausepay_plugin_payment_webhook', '/pausepay/webhook')
-        ->controller(['webgriffe_sylius_pausepay.controller.webhook', 'indexAction'])
-        ->methods(['POST'])
-    ;
 };

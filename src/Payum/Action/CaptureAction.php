@@ -112,9 +112,7 @@ final class CaptureAction implements ActionInterface, GatewayAwareInterface, Gen
             ),
         );
 
-        $payment->setDetails(
-            PaymentDetailsHelper::createFromContractCreateResult($createOrderResult),
-        );
+        $payment->setDetails(PaymentDetailsHelper::createFromContractCreateResult($createOrderResult));
 
         throw new HttpRedirect($redirectUrl);
     }

@@ -1,3 +1,9 @@
+parameters:
+    payment_orderToShip_details:
+        uuid: 'A6BBDBAE-658F-43DA-A534-B289DAB2271E'
+        created_at: '<(new DateTime())>'
+        redirect_url: 'https://test-app.pausepay.it/8e68640bb8'
+
 Sylius\Component\Core\Model\Order:
     orderToShip:
         number: '000000123'
@@ -28,3 +34,17 @@ Sylius\Component\Core\Model\Payment:
         order: '@orderToShip'
         currency_code: 'EUR'
         state: 'new'
+        __calls:
+            - setDetails: ['<{payment_orderToShip_details}>']
+
+Sylius\Bundle\PayumBundle\Model\PaymentSecurityToken:
+    paymentToken_orderToShip:
+        hash: '3ocZLKOx41X04m63TnS9nrBFP6CN6Tu_lHBPvpGwn1o'
+        afterUrl: 'http://localhost:8080/checkout/thank-you/000000123'
+        targetUrl: 'http://localhost:8080/checkout/thank-you/000000123'
+        gatewayName: 'pausepay'
+
+Tests\Webgriffe\SyliusPausePayPlugin\App\Entity\Payment\PaymentOrder:
+    paymentOrder_orderToShip:
+        orderId: '0b58e4e4-1edc-4f2c-991f-112db59e982d'
+        paymentToken: '@paymentToken_orderToShip'
