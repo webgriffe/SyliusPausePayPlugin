@@ -25,6 +25,7 @@ use Webgriffe\SyliusPausePayPlugin\Client\PaymentState;
 use Webgriffe\SyliusPausePayPlugin\Client\ValueObject\Response\CreateOrderResult;
 use Webgriffe\SyliusPausePayPlugin\Factory\PaymentOrderFactoryInterface;
 use Webgriffe\SyliusPausePayPlugin\Helper\PaymentDetailsHelper;
+use Webgriffe\SyliusPausePayPlugin\Logger\LoggingHelperTrait;
 use Webgriffe\SyliusPausePayPlugin\Mapper\OrderMapperInterface;
 use Webgriffe\SyliusPausePayPlugin\Payum\PausePayApi;
 use Webgriffe\SyliusPausePayPlugin\Repository\PaymentOrderRepositoryInterface;
@@ -35,7 +36,7 @@ use Webmozart\Assert\Assert;
  */
 final class CaptureAction implements ActionInterface, GatewayAwareInterface, GenericTokenFactoryAwareInterface, ApiAwareInterface
 {
-    use GatewayAwareTrait, GenericTokenFactoryAwareTrait, ApiAwareTrait;
+    use GatewayAwareTrait, GenericTokenFactoryAwareTrait, ApiAwareTrait, LoggingHelperTrait;
 
     public function __construct(
         private RouterInterface $router,
@@ -55,42 +56,16 @@ final class CaptureAction implements ActionInterface, GatewayAwareInterface, Gen
     {
         RequestNotSupportedException::assertSupports($this, $request);
         Assert::isInstanceOf($request, Capture::class);
-
-        /** @var SyliusPaymentInterface $payment */
         $payment = $request->getModel();
-
-        $this->logInfo($payment, 'Start capture action', );
-
+        Assert::isInstanceOf($payment, SyliusPaymentInterface::class);
         $captureToken = $request->getToken();
         Assert::isInstanceOf($captureToken, TokenInterface::class);
 
+        $this->logInfo($payment, 'Start capture action');
+
         $paymentDetails = $payment->getDetails();
         if ($paymentDetails !== []) {
-            if (!PaymentDetailsHelper::areValid($paymentDetails)) {
-                $this->logger->error('Payment details are already populated with others data. Maybe this payment should be marked as error');
-                $payment->setDetails(PaymentDetailsHelper::addPaymentStatus(
-                    $paymentDetails,
-                    PaymentState::CANCELLED,
-                ));
-
-                return;
-            }
-
-            $this->logInfo(
-                $payment,
-                'PausePay payment details are already valued, so no need to continue here.' .
-                ' Redirecting the user to the Sylius PausePay Payments waiting page.',
-            );
-
-            $order = $payment->getOrder();
-            Assert::isInstanceOf($order, OrderInterface::class);
-
-            throw new HttpRedirect(
-                $this->router->generate('webgriffe_sylius_pausepay_plugin_payment_process', [
-                    'payumToken' => $captureToken->getHash(),
-                    '_locale' => $order->getLocaleCode(),
-                ]),
-            );
+            $this->redirectToPaymentProcessPage($payment, $captureToken, $paymentDetails);
         }
 
         $cancelToken = $this->createCancelToken($captureToken);
@@ -111,7 +86,7 @@ final class CaptureAction implements ActionInterface, GatewayAwareInterface, Gen
         );
 
         $this->createNotifyTokenAndPersistAssociationWithPausePayPayment($payment, $captureToken, $createOrderResult);
-        $payment->setDetails(PaymentDetailsHelper::createFromContractCreateResult($createOrderResult));
+        $payment->setDetails(PaymentDetailsHelper::createFromCreateOrderResult($createOrderResult));
 
         $redirectUrl = $createOrderResult->getRedirectUrl();
         $this->logInfo($payment, sprintf('Redirecting the user to the PausePay redirect URL "%s".', $redirectUrl));
@@ -124,11 +99,6 @@ final class CaptureAction implements ActionInterface, GatewayAwareInterface, Gen
         return
             $request instanceof Capture &&
             $request->getModel() instanceof SyliusPaymentInterface;
-    }
-
-    private function logInfo(SyliusPaymentInterface $payment, string $message, array $context = []): void
-    {
-        $this->logger->info(sprintf('[Payment #%s]: %s.', (string) $payment->getId(), $message, ), $context);
     }
 
     private function createNotifyTokenAndPersistAssociationWithPausePayPayment(
@@ -153,6 +123,36 @@ final class CaptureAction implements ActionInterface, GatewayAwareInterface, Gen
             'payum_cancel_do',
             [],
             $captureToken->getAfterUrl(),
+        );
+    }
+
+    private function redirectToPaymentProcessPage(
+        SyliusPaymentInterface $payment,
+        TokenInterface $captureToken,
+        array $paymentDetails,
+    ): void {
+        if (!PaymentDetailsHelper::areValid($paymentDetails)) {
+            // todo: is it ok to cancel the payment here?
+            $this->logError($payment, 'Payment details are already populated with others data. Cancel the payment.');
+            $payment->setDetails(PaymentDetailsHelper::addPaymentStatus($paymentDetails, PaymentState::CANCELLED));
+
+            return;
+        }
+
+        $this->logInfo(
+            $payment,
+            'PausePay payment details are already valued, so no need to continue here.' .
+            ' Redirecting the user to the Sylius PausePay Payments waiting page.',
+        );
+
+        $order = $payment->getOrder();
+        Assert::isInstanceOf($order, OrderInterface::class);
+
+        throw new HttpRedirect(
+            $this->router->generate('webgriffe_sylius_pausepay_plugin_payment_process', [
+                'payumToken' => $captureToken->getHash(),
+                '_locale' => $order->getLocaleCode(),
+            ]),
         );
     }
 }

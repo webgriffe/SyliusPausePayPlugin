@@ -17,9 +17,11 @@ use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentInterface as SyliusPaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Serializer\SerializerInterface;
 use Webgriffe\SyliusPausePayPlugin\Client\PaymentState;
 use Webgriffe\SyliusPausePayPlugin\Helper\PaymentDetailsHelper;
+use Webgriffe\SyliusPausePayPlugin\Logger\LoggingHelperTrait;
 use Webgriffe\SyliusPausePayPlugin\Payum\PausePayApi;
 use Webgriffe\SyliusPausePayPlugin\ValueObject\WebhookPayload;
 use Webmozart\Assert\Assert;
@@ -31,7 +33,7 @@ use Webmozart\Assert\Assert;
  */
 class NotifyAction implements ActionInterface, GatewayAwareInterface
 {
-    use GatewayAwareTrait;
+    use GatewayAwareTrait, LoggingHelperTrait;
 
     public function __construct(
         private SerializerInterface $serializer,
@@ -46,35 +48,36 @@ class NotifyAction implements ActionInterface, GatewayAwareInterface
     {
         RequestNotSupportedException::assertSupports($this, $request);
         Assert::isInstanceOf($request, Notify::class);
-
-        /** @var SyliusPaymentInterface $syliusPayment */
-        $syliusPayment = $request->getModel();
-
-        $this->logInfo($syliusPayment, 'Start notify action');
-
+        $payment = $request->getModel();
+        Assert::isInstanceOf($payment, SyliusPaymentInterface::class);
         $notifyToken = $request->getToken();
         Assert::isInstanceOf($notifyToken, TokenInterface::class);
+
+        $this->logInfo($payment, 'Start notify action');
 
         $this->gateway->execute($httpRequest = new GetHttpRequest());
         $content = $httpRequest->content;
 
-        $this->logInfo($syliusPayment, sprintf('Received notify action call with payload: %s', $content));
+        $this->logInfo($payment, sprintf('Notify action payload: %s', $content));
 
         $payload = $this->serializer->deserialize($content, WebhookPayload::class, 'json');
         Assert::isInstanceOf($payload, WebhookPayload::class);
 
-        $this->assertPausePayPayment($syliusPayment);
+        $this->assertPausePayPayment($payment);
 
-        $paymentDetails = $syliusPayment->getDetails();
+        $paymentDetails = $payment->getDetails();
         if (!PaymentDetailsHelper::areValid($paymentDetails)) {
-            // todo
-            throw new HttpResponse('Not found', 404);
+            // todo: is it ok to cancel the payment here?
+            $this->logError($payment, 'Payment details are already populated with others data. Cancel the payment.');
+            $payment->setDetails(PaymentDetailsHelper::addPaymentStatus($paymentDetails, PaymentState::CANCELLED));
+
+            return;
         }
 
         $status = $payload->isSuccessful() ? PaymentState::SUCCESS : PaymentState::CANCELLED;
-        $syliusPayment->setDetails(PaymentDetailsHelper::addPaymentStatus($paymentDetails, $status));
+        $payment->setDetails(PaymentDetailsHelper::addPaymentStatus($paymentDetails, $status));
 
-        $this->logInfo($syliusPayment, sprintf('Saved payment status: %s', $status));
+        $this->logInfo($payment, sprintf('Saved payment status: %s', $status));
     }
 
     public function supports($request): bool
@@ -86,21 +89,22 @@ class NotifyAction implements ActionInterface, GatewayAwareInterface
     {
         $paymentMethod = $syliusPayment->getMethod();
         if (!$paymentMethod instanceof PaymentMethodInterface) {
-            throw new HttpResponse('Access denied', 403);
+            $this->logError($syliusPayment, 'Payment method not found');
+
+            throw new HttpResponse('Access denied', Response::HTTP_FORBIDDEN);
         }
 
         $paymentGatewayConfig = $paymentMethod->getGatewayConfig();
         if (!$paymentGatewayConfig instanceof GatewayConfigInterface) {
-            throw new HttpResponse('Access denied', 403);
+            $this->logError($syliusPayment, 'Payment gateway config not found');
+
+            throw new HttpResponse('Access denied', Response::HTTP_FORBIDDEN);
         }
         /** @psalm-suppress DeprecatedMethod */
         if ($paymentGatewayConfig->getFactoryName() !== PausePayApi::GATEWAY_CODE) {
-            throw new HttpResponse('Access denied', 403);
-        }
-    }
+            $this->logError($syliusPayment, 'Payment gateway is not Pause Pay');
 
-    private function logInfo(SyliusPaymentInterface $payment, string $message, array $context = []): void
-    {
-        $this->logger->info(sprintf('[Payment #%s]: %s.', (string) $payment->getId(), $message, ), $context);
+            throw new HttpResponse('Access denied', Response::HTTP_FORBIDDEN);
+        }
     }
 }

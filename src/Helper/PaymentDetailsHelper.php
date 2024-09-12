@@ -25,7 +25,7 @@ final class PaymentDetailsHelper
     /**
      * @return PaymentDetails
      */
-    public static function createFromContractCreateResult(CreateOrderResult $result): array
+    public static function createFromCreateOrderResult(CreateOrderResult $result): array
     {
         return [
             self::UUID_KEY => $result->getUuid(),

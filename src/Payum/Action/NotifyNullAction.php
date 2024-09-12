@@ -13,6 +13,7 @@ use Payum\Core\Request\GetHttpRequest;
 use Payum\Core\Request\Notify;
 use Psr\Log\LoggerInterface;
 use Sylius\Bundle\PayumBundle\Model\PaymentSecurityTokenInterface;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Serializer\SerializerInterface;
 use Webgriffe\SyliusPausePayPlugin\Entity\PaymentOrderInterface;
 use Webgriffe\SyliusPausePayPlugin\Repository\PaymentOrderRepositoryInterface;
@@ -65,10 +66,13 @@ class NotifyNullAction implements ActionInterface, GatewayAwareInterface
         $payload = $this->serializer->deserialize($content, WebhookPayload::class, 'json');
         Assert::isInstanceOf($payload, WebhookPayload::class);
 
-        $paymentOrder = $this->paymentOrderRepository->findOneByPausePayOrderId($payload->getOrderID());
+        $pausePayOrderId = $payload->getOrderID();
+        $paymentOrder = $this->paymentOrderRepository->findOneByPausePayOrderId($pausePayOrderId);
         if (!$paymentOrder instanceof PaymentOrderInterface) {
-            // todo
-            throw new HttpResponse('Not found', 404);
+            // todo: info or error?
+            $this->logger->info(sprintf('PaymentOrder with PausePay order ID "%s" not found', $pausePayOrderId));
+
+            throw new HttpResponse('Not found', Response::HTTP_NOT_FOUND);
         }
 
         return $paymentOrder->getPaymentToken();

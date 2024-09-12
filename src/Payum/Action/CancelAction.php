@@ -14,6 +14,7 @@ use Sylius\Component\Core\Model\PaymentInterface as SyliusPaymentInterface;
 use Symfony\Component\Routing\RouterInterface;
 use Webgriffe\SyliusPausePayPlugin\Client\PaymentState;
 use Webgriffe\SyliusPausePayPlugin\Helper\PaymentDetailsHelper;
+use Webgriffe\SyliusPausePayPlugin\Logger\LoggingHelperTrait;
 use Webmozart\Assert\Assert;
 
 /**
@@ -21,6 +22,8 @@ use Webmozart\Assert\Assert;
  */
 final class CancelAction implements ActionInterface
 {
+    use LoggingHelperTrait;
+
     public function __construct(
         private LoggerInterface $logger,
         private RouterInterface $router,
@@ -34,10 +37,8 @@ final class CancelAction implements ActionInterface
     {
         RequestNotSupportedException::assertSupports($this, $request);
         Assert::isInstanceOf($request, Cancel::class);
-
         $payment = $request->getModel();
         Assert::isInstanceOf($payment, SyliusPaymentInterface::class);
-
         $order = $payment->getOrder();
         Assert::isInstanceOf($order, OrderInterface::class);
 
@@ -47,16 +48,10 @@ final class CancelAction implements ActionInterface
         $paymentDetails = $payment->getDetails();
         PaymentDetailsHelper::assertPaymentDetailsAreValid($paymentDetails);
 
-        $this->logInfo($payment, 'Redirecting the user to the Sylius PausePay waiting page.');
-
-        $order = $payment->getOrder();
-        Assert::isInstanceOf($order, OrderInterface::class);
-
-        $paymentDetails = PaymentDetailsHelper::addPaymentStatus(
-            $paymentDetails,
-            PaymentState::CANCELLED,
-        );
+        $paymentDetails = PaymentDetailsHelper::addPaymentStatus($paymentDetails, PaymentState::CANCELLED);
         $payment->setDetails($paymentDetails);
+
+        $this->logInfo($payment, 'Redirecting the user to the Sylius PausePay waiting page.');
 
         throw new HttpRedirect(
             $this->router->generate('webgriffe_sylius_pausepay_plugin_payment_process', [
@@ -69,10 +64,5 @@ final class CancelAction implements ActionInterface
     public function supports($request): bool
     {
         return $request instanceof Cancel && $request->getModel() instanceof SyliusPaymentInterface;
-    }
-
-    private function logInfo(SyliusPaymentInterface $payment, string $message, array $context = []): void
-    {
-        $this->logger->info(sprintf('[Payment #%s]: %s.', (string) $payment->getId(), $message, ), $context);
     }
 }

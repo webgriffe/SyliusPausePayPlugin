@@ -11,6 +11,7 @@ use Sylius\Bundle\PayumBundle\Request\GetStatus;
 use Sylius\Component\Core\Model\PaymentInterface as SyliusPaymentInterface;
 use Webgriffe\SyliusPausePayPlugin\Client\PaymentState;
 use Webgriffe\SyliusPausePayPlugin\Helper\PaymentDetailsHelper;
+use Webgriffe\SyliusPausePayPlugin\Logger\LoggingHelperTrait;
 use Webmozart\Assert\Assert;
 
 /**
@@ -18,6 +19,8 @@ use Webmozart\Assert\Assert;
  */
 final class StatusAction implements ActionInterface
 {
+    use LoggingHelperTrait;
+
     public function __construct(
         private LoggerInterface $logger,
     ) {
@@ -46,13 +49,21 @@ final class StatusAction implements ActionInterface
         }
 
         if (!$request->isNew() && !$request->isUnknown()) {
-            $this->logInfo($payment, 'Request new or unknown.', ['isNew' => $request->isNew(), 'isUnknown' => $request->isUnknown()]);
+            $this->logInfo(
+                $payment,
+                'Request new or unknown.',
+                ['isNew' => $request->isNew(), 'isUnknown' => $request->isUnknown()],
+            );
 
             return;
         }
 
         if (!PaymentDetailsHelper::areValid($paymentDetails)) {
-            $this->logger->info('Payment details not valid. Payment marked as failed');
+            $this->logInfo(
+                $payment,
+                'Payment details not valid. Payment marked as failed',
+                ['Payment details' => $paymentDetails],
+            );
             $request->markFailed();
 
             return;
@@ -60,16 +71,15 @@ final class StatusAction implements ActionInterface
 
         /** @psalm-suppress InvalidArgument */
         $paymentStatus = PaymentDetailsHelper::getPaymentStatus($paymentDetails);
-
         if (in_array($paymentStatus, [PaymentState::CANCELLED, PaymentState::PENDING], true)) {
-            $this->logger->info('Payment cancelled or pending. Payment marked as canceled.');
+            $this->logInfo($payment, 'Payment cancelled or pending. Payment marked as canceled.');
             $request->markCanceled();
 
             return;
         }
 
         if (in_array($paymentStatus, [PaymentState::SUCCESS, PaymentState::AWAITING_CONFIRMATION], true)) {
-            $this->logger->info('Payment successfully or awaiting confirmation. Payment marked as captured.');
+            $this->logInfo($payment, 'Payment successfully or awaiting confirmation. Payment marked as captured.');
             $request->markCaptured();
 
             return;
@@ -82,10 +92,5 @@ final class StatusAction implements ActionInterface
             $request instanceof GetStatus &&
             $request->getFirstModel() instanceof SyliusPaymentInterface
         ;
-    }
-
-    private function logInfo(SyliusPaymentInterface $payment, string $message, array $context = []): void
-    {
-        $this->logger->info(sprintf('[Payment #%s]: %s.', (string) $payment->getId(), $message, ), $context);
     }
 }

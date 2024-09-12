@@ -7,6 +7,7 @@ namespace Webgriffe\SyliusPausePayPlugin\Controller;
 use Payum\Core\Model\Identity;
 use Payum\Core\Security\TokenInterface;
 use Payum\Core\Storage\StorageInterface;
+use Psr\Log\LoggerInterface;
 use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
@@ -16,6 +17,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Routing\RouterInterface;
 use Webgriffe\SyliusPausePayPlugin\Helper\PaymentDetailsHelper;
+use Webgriffe\SyliusPausePayPlugin\Logger\LoggingHelperTrait;
 use Webgriffe\SyliusPausePayPlugin\Payum\PausePayApi;
 use Webmozart\Assert\Assert;
 
@@ -26,12 +28,14 @@ use Webmozart\Assert\Assert;
  */
 final class PaymentController extends AbstractController
 {
+    use LoggingHelperTrait;
+
     public function __construct(
         private StorageInterface $tokenStorage,
         private RouterInterface $router,
         private PaymentRepositoryInterface $paymentRepository,
+        private LoggerInterface $logger,
     ) {
-        // todo: logging
     }
 
     public function processAction(string $payumToken): Response
@@ -45,20 +49,25 @@ final class PaymentController extends AbstractController
             throw $this->createNotFoundException();
         }
 
-        $paymentDetails = $this->retrieveDetailsFromToken($token);
+        $syliusPayment = $this->retrievePaymentFromToken($token);
+        $paymentDetails = $syliusPayment->getDetails();
+        if (!PaymentDetailsHelper::areValid($paymentDetails)) {
+            throw $this->createAccessDeniedException();
+        }
 
-        $redirectUrl = PaymentDetailsHelper::getRedirectUrl($paymentDetails);
         $paymentStatusUrl = $this->router->generate(
             'webgriffe_sylius_pausepay_plugin_payment_status',
             ['payumToken' => $payumToken],
             UrlGeneratorInterface::ABSOLUTE_URL,
         );
-
-        return $this->render('@WebgriffeSyliusPausePayPlugin/Process/index.html.twig', [
+        $params = [
             'afterUrl' => $token->getAfterUrl(),
             'paymentStatusUrl' => $paymentStatusUrl,
-            'redirectUrl' => $redirectUrl,
-        ]);
+            'redirectUrl' => PaymentDetailsHelper::getRedirectUrl($paymentDetails),
+        ];
+        $this->logInfo($syliusPayment, 'Showing process page to user.', $params);
+
+        return $this->render('@WebgriffeSyliusPausePayPlugin/Process/index.html.twig', $params);
     }
 
     public function statusAction(string $payumToken): Response
@@ -72,16 +81,20 @@ final class PaymentController extends AbstractController
             throw $this->createNotFoundException();
         }
 
-        $paymentDetails = $this->retrieveDetailsFromToken($token);
+        $syliusPayment = $this->retrievePaymentFromToken($token);
+        $paymentDetails = $syliusPayment->getDetails();
+        if (!PaymentDetailsHelper::areValid($paymentDetails)) {
+            throw $this->createAccessDeniedException();
+        }
+
         $paymentStatus = PaymentDetailsHelper::getPaymentStatus($paymentDetails);
+
+        $this->logInfo($syliusPayment, sprintf('Retrieved status "%s"', $paymentStatus ?? 'null'));
 
         return $this->json(['captured' => $paymentStatus !== null]);
     }
 
-    /**
-     * @return PaymentDetails
-     */
-    private function retrieveDetailsFromToken(TokenInterface $token): array
+    private function retrievePaymentFromToken(TokenInterface $token): PaymentInterface
     {
         $paymentIdentity = $token->getDetails();
         Assert::isInstanceOf($paymentIdentity, Identity::class);
@@ -94,12 +107,7 @@ final class PaymentController extends AbstractController
 
         $this->assertPausePayPayment($syliusPayment);
 
-        $paymentDetails = $syliusPayment->getDetails();
-        if (!PaymentDetailsHelper::areValid($paymentDetails)) {
-            throw $this->createAccessDeniedException();
-        }
-
-        return $paymentDetails;
+        return $syliusPayment;
     }
 
     private function assertPausePayPayment(PaymentInterface $syliusPayment): void

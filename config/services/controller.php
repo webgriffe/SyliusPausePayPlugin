@@ -15,6 +15,7 @@ return static function (ContainerConfigurator $containerConfigurator) {
             service('payum.security.token_storage'),
             service('router'),
             service('sylius.repository.payment'),
+            service('webgriffe_sylius_pausepay.logger'),
         ])
         ->call('setContainer', [service('service_container')])
         ->tag('controller.service_arguments')
