@@ -7,5 +7,8 @@ webgriffe_sylius_pausepay_plugin_shop:
 webgriffe_sylius_pausepay_plugin_index:
     resource: "@WebgriffeSyliusPausePayPlugin/config/routes/index.php"
 
+webgriffe_sylius_pausepay_plugin_payum:
+    resource: "@WebgriffeSyliusPausePayPlugin/config/routes/payum.php"
+
 sylius_shop_payum_cancel:
     resource: "@PayumBundle/Resources/config/routing/cancel.xml"
