@@ -22,25 +22,31 @@ use Sylius\Component\Core\Model\OrderItemUnit;
 use Sylius\Component\Core\Model\Payment;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethod;
+use Sylius\Component\Core\Model\ShopBillingData;
 use Sylius\Component\Core\OrderPaymentStates;
 use Sylius\Component\Order\Model\OrderItemUnitInterface;
 use Tests\Webgriffe\SyliusPausePayPlugin\Service\Resolver\DummyCompanyInfoResolver;
 use Webgriffe\SyliusPausePayPlugin\Mapper\OrderMapper;
 use Webgriffe\SyliusPausePayPlugin\Mapper\OrderMapperInterface;
+use Webgriffe\SyliusPausePayPlugin\Provider\ConfigurationProviderInterface;
 use Webgriffe\SyliusPausePayPlugin\Resolver\NumberResolver;
 
 final class OrderMapperTest extends TestCase
 {
     private OrderMapperInterface $mapper;
+    private $configProviderMock;
 
     protected function setUp(): void
     {
-        $this->mapper = new OrderMapper(new DummyCompanyInfoResolver(), new NumberResolver());
+        $this->configProviderMock = $this->createMock(ConfigurationProviderInterface::class);
+        $this->mapper = new OrderMapper(new DummyCompanyInfoResolver(), new NumberResolver($this->configProviderMock));
         Carbon::setTestNow('2024-09-01 12:30:00');
     }
 
     public function test_it_maps_sylius_payment_to_pausepay_order(): void
     {
+        $this->configProviderMock->method('isSandbox')->willReturn(false);
+
         $order = $this->getBaseOrder();
         $this->addShippingCost($order);
         $order->addItem($this->getOrderItemWithUnit('Star Wars Mug', 5067, 2));
@@ -79,6 +85,8 @@ final class OrderMapperTest extends TestCase
 
     public function test_it_maps_sylius_payment_with_various_discounts_to_pausepay_order(): void
     {
+        $this->configProviderMock->method('isSandbox')->willReturn(false);
+
         $order = $this->getBaseOrder();
         $this->addShippingCost($order);
 
@@ -113,6 +121,8 @@ final class OrderMapperTest extends TestCase
 
     public function test_it_maps_sylius_payment_with_maximum_two_decimals_on_amounts(): void
     {
+        $this->configProviderMock->method('isSandbox')->willReturn(false);
+
         $order = $this->getBaseOrder();
 
         $orderItem = new OrderItem();
@@ -148,6 +158,18 @@ final class OrderMapperTest extends TestCase
         self::assertSame($items[0]->getAmount(), 77.01); // this should be 77.008 but it is rounded to 77.01
     }
 
+    public function test_it_maps_number_with_tax_id_as_suffix_on_sandbox_payment(): void
+    {
+        $this->configProviderMock->method('isSandbox')->willReturn(true);
+
+        $order = $this->getBaseOrder();
+        $order->addItem($this->getOrderItemWithUnit('Star Wars Mug', 5067, 2));
+
+        $pausePayOrder = $this->mapper->mapFromSyliusPayment($this->getPayment($order), 'https://ok', 'https://ko');
+
+        self::assertSame('YC-1234#02277170359', $pausePayOrder->getNumber());
+    }
+
     private function getPayment(OrderInterface $order): PaymentInterface
     {
         $paymentMethod = new PaymentMethod();
@@ -174,6 +196,9 @@ final class OrderMapperTest extends TestCase
 
         $channel = new Channel();
         $channel->setHostname('mywebsite.com');
+        $shopBillingData = new ShopBillingData();
+        $shopBillingData->setTaxId('02277170359');
+        $channel->setShopBillingData($shopBillingData);
         $order->setChannel($channel);
 
         $order->setCustomer($this->getCustomer());
