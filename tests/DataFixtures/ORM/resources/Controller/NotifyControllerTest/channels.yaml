@@ -1,0 +1,15 @@
+Sylius\Component\Locale\Model\Locale:
+    it_locale:
+        code: 'it_IT'
+
+Sylius\Component\Currency\Model\Currency:
+    euro:
+        code: 'EUR'
+
+Sylius\Component\Core\Model\Channel:
+    italian_channel:
+        code: 'ecommerce_italia'
+        name: 'Italian Ecommerce'
+        default_locale: '@it_locale'
+        base_currency: '@euro'
+        tax_calculation_strategy: 'order_items_based'
