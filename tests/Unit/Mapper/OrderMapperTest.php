@@ -7,6 +7,7 @@ namespace Tests\Webgriffe\SyliusPausePayPlugin\Unit\Mapper;
 use Carbon\Carbon;
 use DateTimeImmutable;
 use PHPUnit\Framework\TestCase;
+use ReflectionClass;
 use Sylius\Bundle\PayumBundle\Model\GatewayConfig;
 use Sylius\Component\Core\Model\Adjustment;
 use Sylius\Component\Core\Model\AdjustmentInterface;
@@ -49,7 +50,7 @@ final class OrderMapperTest extends TestCase
         $pausePayOrder = $this->mapper->mapFromSyliusPayment($this->getPayment($order), 'https://ok', 'https://ko');
 
         self::assertSame(260.62, $pausePayOrder->getAmount());
-        self::assertSame('000001732', $pausePayOrder->getNumber());
+        self::assertSame('1234', $pausePayOrder->getNumber());
         self::assertSame('2024-09-01 12:30:00', $pausePayOrder->getIssueDate()->format('Y-m-d H:i:s'));
         self::assertSame('Order #000001732 of 2024-09-01 on mywebsite.com', $pausePayOrder->getDescription());
         self::assertSame('Order #000001732 of 2024-09-01 on mywebsite.com', $pausePayOrder->getRemittance());
@@ -165,6 +166,7 @@ final class OrderMapperTest extends TestCase
     private function getBaseOrder(): OrderInterface
     {
         $order = new Order();
+        $this->setIdOnObject($order, 1234);
         $order->setNumber('000001732');
         $order->setPaymentState(OrderPaymentStates::STATE_AWAITING_PAYMENT);
         $order->setCheckoutCompletedAt(new DateTimeImmutable('2024-09-01 10:00:10'));
@@ -264,5 +266,13 @@ final class OrderMapperTest extends TestCase
         $shippingCost = 1230;
         $order->addAdjustment($this->getShippingAdjustment($shippingCost));
         $order->addAdjustment($this->getTaxAdjustment((int) (round($shippingCost * 0.22, 2))));
+    }
+
+    private function setIdOnObject($object, int $id): void
+    {
+        $reflectionClass = new ReflectionClass($object::class);
+        $idProperty = $reflectionClass->getProperty('id');
+        $idProperty->setAccessible(true);
+        $idProperty->setValue($object, $id);
     }
 }

@@ -17,11 +17,14 @@ final class NumberResolver implements NumberResolverInterface
 
     public function resolveFromOrder(OrderInterface $order): string
     {
-        $number = $order->getNumber();
-        Assert::stringNotEmpty($number);
-        // todo: custom webhooks with "#VAT_NUMBER" -> see guida-seller.pdf
+        /** @var int|null $id */
+        $id = $order->getId();
+        Assert::notNull($id);
 
-        return sprintf('%s-%s', $this->computeTestPrefix($order), $number);
+        $number = sprintf('%s-%s', $this->computeTestPrefix($order), $id);
+        $number = $this->addTaxIdToNumber($number, $order);
+
+        return $number;
     }
 
     private function computeTestPrefix(OrderInterface $order): string
@@ -43,5 +46,22 @@ final class NumberResolver implements NumberResolverInterface
         }
 
         return self::ELIGIBLE_WITH_INSURANCE;
+    }
+
+    private function addTaxIdToNumber(string $number, OrderInterface $order): string
+    {
+        $channel = $order->getChannel();
+        $billingData = $channel?->getShopBillingData();
+        $taxId = $billingData?->getTaxId();
+        if (!is_string($taxId)) {
+            return $number;
+        }
+
+        $taxId = trim($taxId);
+        if ($taxId === '') {
+            return $number;
+        }
+
+        return sprintf('%s#%s', $number, $taxId);
     }
 }

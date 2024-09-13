@@ -11,9 +11,10 @@ final class NumberResolver implements NumberResolverInterface
 {
     public function resolveFromOrder(OrderInterface $order): string
     {
-        $number = $order->getNumber();
-        Assert::stringNotEmpty($number);
+        /** @var int|null $id */
+        $id = $order->getId();
+        Assert::notNull($id);
 
-        return $number;
+        return (string) $id;
     }
 }
