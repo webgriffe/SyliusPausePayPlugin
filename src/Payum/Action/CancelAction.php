@@ -8,6 +8,7 @@ use Payum\Core\Action\ActionInterface;
 use Payum\Core\Exception\RequestNotSupportedException;
 use Payum\Core\Reply\HttpRedirect;
 use Payum\Core\Request\Cancel;
+use Payum\Core\Security\TokenInterface;
 use Psr\Log\LoggerInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface as SyliusPaymentInterface;
@@ -51,11 +52,14 @@ final class CancelAction implements ActionInterface
         $paymentDetails = PaymentDetailsHelper::addPaymentStatus($paymentDetails, PaymentState::CANCELLED);
         $payment->setDetails($paymentDetails);
 
+        $cancelToken = $request->getToken();
+        Assert::isInstanceOf($cancelToken, TokenInterface::class);
+
         $this->logInfo($payment, 'Redirecting the user to the Sylius PausePay waiting page.');
 
         throw new HttpRedirect(
             $this->router->generate('webgriffe_sylius_pausepay_plugin_payment_process', [
-                'payumToken' => $order->getTokenValue(),
+                'payumToken' => $cancelToken->getHash(),
                 '_locale' => $order->getLocaleCode(),
             ]),
         );
