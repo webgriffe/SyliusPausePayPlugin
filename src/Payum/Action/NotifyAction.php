@@ -14,7 +14,6 @@ use Payum\Core\Request\Notify;
 use Payum\Core\Security\TokenInterface;
 use Psr\Log\LoggerInterface;
 use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
-use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentInterface as SyliusPaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Symfony\Component\HttpFoundation\Response;
@@ -48,6 +47,7 @@ class NotifyAction implements ActionInterface, GatewayAwareInterface
     {
         RequestNotSupportedException::assertSupports($this, $request);
         Assert::isInstanceOf($request, Notify::class);
+        /** @var SyliusPaymentInterface|object $payment */
         $payment = $request->getModel();
         Assert::isInstanceOf($payment, SyliusPaymentInterface::class);
         $notifyToken = $request->getToken();
@@ -64,6 +64,13 @@ class NotifyAction implements ActionInterface, GatewayAwareInterface
         Assert::isInstanceOf($payload, WebhookPayload::class);
 
         $this->assertPausePayPayment($payment);
+
+        if ($payment->getState() !== SyliusPaymentInterface::STATE_NEW) {
+            // todo: this should be an error?
+            $this->logInfo($payment, 'Payment is not in "new" state so it cannot be confirmed or cancelled');
+
+            return;
+        }
 
         $paymentDetails = $payment->getDetails();
         if (!PaymentDetailsHelper::areValid($paymentDetails)) {
@@ -85,7 +92,7 @@ class NotifyAction implements ActionInterface, GatewayAwareInterface
         return $request instanceof Notify && $request->getModel() instanceof SyliusPaymentInterface;
     }
 
-    private function assertPausePayPayment(PaymentInterface $syliusPayment): void
+    private function assertPausePayPayment(SyliusPaymentInterface $syliusPayment): void
     {
         $paymentMethod = $syliusPayment->getMethod();
         if (!$paymentMethod instanceof PaymentMethodInterface) {

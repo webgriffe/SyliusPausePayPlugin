@@ -124,6 +124,36 @@ final class NotifyControllerTest extends KernelTestCase
         $this->controller->doUnsafeAction($mainRequest);
     }
 
+    public function test_that_it_does_nothing_when_payment_is_not_in_new_state(): void
+    {
+        $this->fixtureLoader->load(
+            [
+                self::FIXTURE_BASE_DIR . '/' . $this->getName() . '.yaml',
+                self::FIXTURE_BASE_DIR . '/customers.yaml',
+                self::FIXTURE_BASE_DIR . '/products.yaml',
+                self::FIXTURE_BASE_DIR . '/payment_methods.yaml',
+                self::FIXTURE_BASE_DIR . '/channels.yaml',
+            ],
+        );
+
+        /** @var PaymentInterface $payment */
+        $payment = $this->paymentRepository->findAll()[0];
+        $this->associateTokenToPayment($payment);
+
+        $requestContent = $this->getPausePayNotifyPayload(WebhookPayload::EVENT_TYPE_KO);
+        $mainRequest = new Request(['gateway' => PausePayApi::GATEWAY_CODE], [], [], [], [], [], $requestContent);
+        $this->requestStack->push($mainRequest);
+
+        $this->controller->doUnsafeAction($mainRequest);
+
+        // assert nothing changed
+        $this->entityManager->refresh($payment);
+        self::assertSame(PaymentState::SUCCESS, $payment->getDetails()['status']);
+        self::assertSame(PaymentInterface::STATE_COMPLETED, $payment->getState());
+        $order = $payment->getOrder();
+        self::assertCount(1, $order->getPayments());
+    }
+
     /**
      * this cannot be done in the fixture as the payment ID is not known in advance
      */
