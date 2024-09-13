@@ -82,6 +82,7 @@ final class PaymentController extends AbstractController
         }
 
         $syliusPayment = $this->retrievePaymentFromToken($token);
+        // todo: check if the payment is already completed or cancelled
         $paymentDetails = $syliusPayment->getDetails();
         if (!PaymentDetailsHelper::areValid($paymentDetails)) {
             throw $this->createAccessDeniedException();

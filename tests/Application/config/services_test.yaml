@@ -1,6 +1,5 @@
 imports:
     - { resource: "services/test/*.php" }
-    - { resource: "../../Behat/Resources/services.php" }
     - { resource: "../../../vendor/sylius/sylius/src/Sylius/Behat/Resources/config/services.xml" }
 
 # workaround needed for strange "test.client.history" problem
