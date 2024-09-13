@@ -11,5 +11,4 @@ return static function (ContainerConfigurator $containerConfigurator) {
     $services = $containerConfigurator->services();
 
     $services->set('webgriffe_sylius_pausepay.resolver.company_info', CompanyInfoResolver::class);
-    $services->set('webgriffe_sylius_pausepay.resolver.number', NumberResolver::class);
 };

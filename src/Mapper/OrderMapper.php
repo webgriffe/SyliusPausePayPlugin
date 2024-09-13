@@ -10,6 +10,7 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Webgriffe\SyliusPausePayPlugin\Client\ValueObject\Order;
 use Webgriffe\SyliusPausePayPlugin\Client\ValueObject\OrderItem;
 use Webgriffe\SyliusPausePayPlugin\Resolver\CompanyInfoResolverInterface;
+use Webgriffe\SyliusPausePayPlugin\Resolver\NumberResolverInterface;
 use Webmozart\Assert\Assert;
 
 final class OrderMapper implements OrderMapperInterface

@@ -2,18 +2,25 @@
 
 declare(strict_types=1);
 
-namespace Tests\Webgriffe\SyliusPausePayPlugin\App\Resolver;
+namespace Webgriffe\SyliusPausePayPlugin\Resolver;
 
 use Sylius\Component\Core\Model\OrderInterface;
-use Webgriffe\SyliusPausePayPlugin\Mapper\NumberResolverInterface;
+use Webgriffe\SyliusPausePayPlugin\Provider\ConfigurationProviderInterface;
 use Webmozart\Assert\Assert;
 
 final class NumberResolver implements NumberResolverInterface
 {
     private const NOT_ELIGIBLE = 'NE'; // Buyer not eligible
+
     private const ELIGIBLE_NO_INSURANCE = 'NC'; // Buyer eligible, without insurance coverage;
+
     private const ELIGIBLILITY_NOT_AVAILABLE = 'NR'; // Eligibility not yet available;
+
     private const ELIGIBLE_WITH_INSURANCE = 'YC'; // Buyer eligible, with insurance coverage.
+
+    public function __construct(private ConfigurationProviderInterface $configurationProvider)
+    {
+    }
 
     public function resolveFromOrder(OrderInterface $order): string
     {
@@ -21,10 +28,13 @@ final class NumberResolver implements NumberResolverInterface
         $id = $order->getId();
         Assert::notNull($id);
 
-        $number = sprintf('%s-%s', $this->computeTestPrefix($order), $id);
-        $number = $this->addTaxIdToNumber($number, $order);
+        if (!$this->configurationProvider->isSandbox()) {
+            return (string) $id;
+        }
 
-        return $number;
+        $number = sprintf('%s-%s', $this->computeTestPrefix($order), $id);
+
+        return $this->addTaxIdToNumber($number, $order);
     }
 
     private function computeTestPrefix(OrderInterface $order): string

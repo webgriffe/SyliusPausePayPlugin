@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Webgriffe\SyliusPausePayPlugin\Mapper;
+namespace Webgriffe\SyliusPausePayPlugin\Resolver;
 
 use Sylius\Component\Core\Model\OrderInterface;
 

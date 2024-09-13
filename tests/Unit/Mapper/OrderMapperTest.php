@@ -25,9 +25,9 @@ use Sylius\Component\Core\Model\PaymentMethod;
 use Sylius\Component\Core\OrderPaymentStates;
 use Sylius\Component\Order\Model\OrderItemUnitInterface;
 use Tests\Webgriffe\SyliusPausePayPlugin\Service\Resolver\DummyCompanyInfoResolver;
-use Webgriffe\SyliusPausePayPlugin\Mapper\NumberResolver;
 use Webgriffe\SyliusPausePayPlugin\Mapper\OrderMapper;
 use Webgriffe\SyliusPausePayPlugin\Mapper\OrderMapperInterface;
+use Webgriffe\SyliusPausePayPlugin\Resolver\NumberResolver;
 
 final class OrderMapperTest extends TestCase
 {
