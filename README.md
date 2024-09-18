@@ -14,20 +14,20 @@
 1. Run:
     ```bash
     composer require webgriffe/sylius-pausepay-plugin
-   ```
+    ```
 
 2. Add `Webgriffe\SyliusPausePayPlugin\WebgriffeSyliusPausePayPlugin::class => ['all' => true]` to your `config/bundles.php`.
    
-   Normally, the plugin is automatically added to the `config/bundles.php` file by the `composer require` command. If it is not, you have to add it manually.
+    Normally, the plugin is automatically added to the `config/bundles.php` file by the `composer require` command. If it is not, you have to add it manually.
 
 3. Create a new file config/packages/webgriffe_sylius_pausepay_plugin.yaml:
-   ```yaml
-   imports:
-       - { resource: "@WebgriffeSyliusPausePayPlugin/config/config.php" }
-   ```
+    ```yaml
+    imports:
+      - { resource: "@WebgriffeSyliusPausePayPlugin/config/config.php" }
+    ```
 
-4. Import the routes needed for cancelling the payments. Add the following to your config/routes.yaml file:
-   ```yaml
+4. Create a new file config/routes/webgriffe_sylius_pausepay_plugin.yaml:
+    ```yaml
     webgriffe_sylius_pausepay_plugin_shop:
         resource: "@WebgriffeSyliusPausePayPlugin/config/routes/shop.php"
         prefix: /{_locale}
@@ -37,15 +37,15 @@
     webgriffe_sylius_pausepay_plugin_index:
         resource: "@WebgriffeSyliusPausePayPlugin/config/routes/index.php"
     
+    webgriffe_sylius_pausepay_plugin_payum:
+        resource: "@WebgriffeSyliusPausePayPlugin/config/routes/payum.php"
+    
     sylius_shop_payum_cancel:
         resource: "@PayumBundle/Resources/config/routing/cancel.xml"
+    ```
 
-   ```
-   **NB:** The file shop_routing needs to be after the prefix _locale, so that messages can be displayed in the right
-   language. You should also include the cancel routes from the Payum bundle if you do not have it already!
-
-5. Add the WebhookToken entity. Create a new file `src/Entity/Payment/WebhookToken.php` with the following content:
-   ```php
+5. Add the PaymentOrder entity. Create a new file `src/Entity/Payment/PaymentOrder.php` with the following content:
+    ```php
     <?php
 
     declare(strict_types=1);
@@ -53,23 +53,61 @@
     namespace App\Entity\Payment;
 
     use Doctrine\ORM\Mapping as ORM;
-    use Webgriffe\SyliusPausePayPlugin\Entity\WebhookToken as BaseWebhookToken;
+    use Webgriffe\SyliusPausePayPlugin\Entity\PaymentOrder as BasePaymentOrder;
     
     /**
      * @ORM\Entity
-     * @ORM\Table(name="webgriffe_sylius_pausepay_webhook_token")
+     * @ORM\Table(name="webgriffe_sylius_pausepay_payment_order")
      */
-    class WebhookToken extends BaseWebhookToken
+    class PaymentOrder extends BasePaymentOrder
     {
     }
+
     ```
-6. Run:
+
+6. Add a new CompanyInfoResolver service that decorates the dummy service `webgriffe_sylius_pausepay.resolver.company_info` of the plugin. This service is used to resolve the company info "of the order" and will be passed to PausePay system upon payment creation.
+
+   Create a new file `src/Resolver/PausePay/CompanyInfoResolver.php` with the following content:
+    ```php
+    <?php
+    
+    declare(strict_types=1);
+    
+    namespace App\Resolver\PausePay;
+    
+    use Sylius\Component\Core\Model\OrderInterface;
+    use Webgriffe\SyliusPausePayPlugin\Resolver\CompanyInfoResolverInterface;
+    use Webgriffe\SyliusPausePayPlugin\ValueObject\CompanyInfo;
+    
+    final class CompanyInfoResolver implements CompanyInfoResolverInterface
+    {
+        public function resolveFromOrder(OrderInterface $order): CompanyInfo
+        {
+            // TODO: your logic here
+        }
+    }
+    ```
+
+    and define it as the decoration/replacement of the service with alias `webgriffe_sylius_pausepay.resolver.company_info`. For example create the file `config/services/resolver.yaml` with content:
+
+    ```yaml
+    services:
+        webgriffe_sylius_pausepay.resolver.company_info:
+            class: App\Resolver\PausePay\CompanyInfoResolver
+    ```
+
+    TODO: Add sandbox logic
+
+7. If you have a custom implementation of the Sylius service `PaymentMethodResolver`, you must add the logic to check the availability of PausePay payment method by using the service `PausePayAvailabilityChecker`.
+
+   TODO: Add example
+
+8. Run:
     ```bash
-    php bin/console doctrine:migrations:diff
     php bin/console doctrine:migrations:migrate
     ```
 
-7. Run:
+9. Run:
     ```bash
     php bin/console sylius:install:assets
    ```
