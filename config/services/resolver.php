@@ -17,7 +17,12 @@ return static function (ContainerConfigurator $containerConfigurator) {
         ->args([service('webgriffe_sylius_pausepay.provider.configuration'),]);
 
     $services->set('webgriffe_sylius_pausepay.resolver.payment_methods', PausePayPaymentMethodsResolver::class)
-        ->args([service('sylius.repository.payment_method'),])
+        ->args(
+            [
+                service('sylius.repository.payment_method'),
+                service('webgriffe_sylius_pausepay.checker.pause_pay_availability'),
+            ]
+        )
         ->tag('sylius.payment_method_resolver', [
             'type' => 'pausepay',
             'label' => 'PausePay',

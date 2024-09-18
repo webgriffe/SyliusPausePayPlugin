@@ -12,13 +12,14 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\Repository\PaymentMethodRepositoryInterface;
 use Sylius\Component\Payment\Model\PaymentInterface as BasePaymentInterface;
 use Sylius\Component\Payment\Resolver\PaymentMethodsResolverInterface;
-use Webgriffe\SyliusPausePayPlugin\Payum\PausePayApi;
+use Webgriffe\SyliusPausePayPlugin\Checker\PaymentMethodAvailabilityCheckerInterface;
 use Webmozart\Assert\Assert;
 
 final class PausePayPaymentMethodsResolver implements PaymentMethodsResolverInterface
 {
     public function __construct(
         private PaymentMethodRepositoryInterface $paymentMethodRepository,
+        private PaymentMethodAvailabilityCheckerInterface $paymentMethodAvailabilityChecker,
     ) {
     }
 
@@ -35,42 +36,19 @@ final class PausePayPaymentMethodsResolver implements PaymentMethodsResolverInte
         Assert::isInstanceOf($order, OrderInterface::class);
         $channel = $order->getChannel();
         Assert::isInstanceOf($channel, ChannelInterface::class);
-        $billingAddress = $order->getBillingAddress();
-        Assert::isInstanceOf($billingAddress, AddressInterface::class);
-        // todo: should we check the shipping address too?
-        $currencyCode = $order->getCurrencyCode();
-        Assert::notNull($currencyCode);
-        $orderAmount = $order->getTotal();
 
         /** @var PaymentMethodInterface[] $paymentMethods */
         $paymentMethods = $this->paymentMethodRepository->findEnabledForChannel($channel);
 
         return array_filter(
             $paymentMethods,
-            static function (PaymentMethodInterface $paymentMethod) use (
-                $billingAddress,
-                $currencyCode,
-                $orderAmount
-            ) {
+            function (PaymentMethodInterface $paymentMethod) use ($subject) {
                 $gatewayConfig = $paymentMethod->getGatewayConfig();
                 if ($gatewayConfig === null) {
                     return false;
                 }
-                /** @psalm-suppress DeprecatedMethod */
-                if ($gatewayConfig->getFactoryName() !== PausePayApi::GATEWAY_CODE) {
-                    return true;
-                }
-                if ($billingAddress->getCountryCode() !== 'IT') {
-                    return false;
-                }
-                if ($currencyCode !== 'EUR') {
-                    return false;
-                }
-                if ($orderAmount < 50000 || $orderAmount > 2000000) {
-                    return false;
-                }
 
-                return true;
+                return $this->paymentMethodAvailabilityChecker->isAvailable($subject, $paymentMethod);
             },
         );
     }

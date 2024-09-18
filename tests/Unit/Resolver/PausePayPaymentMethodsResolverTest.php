@@ -18,6 +18,7 @@ use Sylius\Component\Core\Model\PaymentMethod;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\Repository\PaymentMethodRepositoryInterface;
 use Sylius\Component\Payment\Resolver\PaymentMethodsResolverInterface;
+use Webgriffe\SyliusPausePayPlugin\Checker\PausePayAvailabilityChecker;
 use Webgriffe\SyliusPausePayPlugin\Payum\PausePayApi;
 use Webgriffe\SyliusPausePayPlugin\Resolver\PausePayPaymentMethodsResolver;
 
@@ -37,7 +38,7 @@ final class PausePayPaymentMethodsResolverTest extends TestCase
                     $this->getPaymentMethod(PausePayApi::GATEWAY_CODE),
                 ]
             );
-        $this->resolver = new PausePayPaymentMethodsResolver($repoMock);
+        $this->resolver = new PausePayPaymentMethodsResolver($repoMock, new PausePayAvailabilityChecker());
     }
 
     public function test_it_supports_payment(): void
