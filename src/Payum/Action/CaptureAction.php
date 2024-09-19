@@ -19,7 +19,9 @@ use Psr\Log\LoggerInterface;
 use Sylius\Bundle\PayumBundle\Model\PaymentSecurityTokenInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface as SyliusPaymentInterface;
+use Symfony\Component\EventDispatcher\GenericEvent;
 use Symfony\Component\Routing\RouterInterface;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 use Webgriffe\SyliusPausePayPlugin\Client\ClientInterface;
 use Webgriffe\SyliusPausePayPlugin\Client\PaymentState;
 use Webgriffe\SyliusPausePayPlugin\Client\ValueObject\Response\CreateOrderResult;
@@ -38,6 +40,8 @@ final class CaptureAction implements ActionInterface, GatewayAwareInterface, Gen
 {
     use GatewayAwareTrait, GenericTokenFactoryAwareTrait, ApiAwareTrait, LoggingHelperTrait;
 
+    public const DETAILS_ALREADY_POPULATED_EVENT_NAME = 'webgriffe.sylius_pausepay_plugin.action.capture.details_already_populated';
+
     public function __construct(
         private RouterInterface $router,
         private LoggerInterface $logger,
@@ -45,6 +49,7 @@ final class CaptureAction implements ActionInterface, GatewayAwareInterface, Gen
         private OrderMapperInterface $orderMapper,
         private PaymentOrderRepositoryInterface $paymentOrderRepository,
         private PaymentOrderFactoryInterface $paymentOrderFactory,
+        private EventDispatcherInterface $eventDispatcher,
     ) {
         $this->apiClass = PausePayApi::class;
     }
@@ -65,6 +70,11 @@ final class CaptureAction implements ActionInterface, GatewayAwareInterface, Gen
 
         $paymentDetails = $payment->getDetails();
         if ($paymentDetails !== []) {
+            $this->eventDispatcher->dispatch(
+                new GenericEvent($payment, ['paymentDetails' => $paymentDetails, 'captureToken' => $captureToken]),
+                self::DETAILS_ALREADY_POPULATED_EVENT_NAME,
+            );
+
             $this->redirectToPaymentProcessPage($payment, $captureToken, $paymentDetails);
         }
 
