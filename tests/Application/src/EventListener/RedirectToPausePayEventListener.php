@@ -5,13 +5,11 @@ declare(strict_types=1);
 namespace Tests\Webgriffe\SyliusPausePayPlugin\App\EventListener;
 
 use Payum\Core\Reply\HttpRedirect;
-use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Symfony\Component\EventDispatcher\GenericEvent;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Webgriffe\SyliusPausePayPlugin\Helper\PaymentDetailsHelper;
-use Webmozart\Assert\Assert;
 
 /**
  * @psalm-type PaymentDetails array{uuid: string, redirect_url: string, created_at: string, status?: string}
@@ -28,10 +26,14 @@ final class RedirectToPausePayEventListener
     {
         /** @var PaymentInterface $payment */
         $payment = $event->getSubject();
-        Assert::isInstanceOf($payment, PaymentInterface::class);
+        if ($payment === null) {
+            return;
+        }
 
         $order = $payment->getOrder();
-        Assert::isInstanceOf($order, OrderInterface::class);
+        if ($order === null) {
+            return;
+        }
 
         $paymentDetails = $payment->getDetails();
         if (!PaymentDetailsHelper::areValid($paymentDetails)) {
@@ -39,12 +41,21 @@ final class RedirectToPausePayEventListener
         }
 
         $request = $this->requestStack->getMainRequest();
+        if ($request === null) {
+            return;
+        }
+
+        $haystack = $request->headers->get('referer');
+        if ($haystack === null || $haystack === '') {
+            return;
+        }
+
         $shopOrderUrl = $this->urlGenerator->generate(
             'sylius_shop_order_show',
             ['tokenValue' => $order->getTokenValue()]
         );
 
-        if (!str_contains($request->headers->get('referer'), $shopOrderUrl)) {
+        if (!str_contains($haystack, $shopOrderUrl)) {
             return;
         }
 

@@ -14,6 +14,10 @@ use Webmozart\Assert\Assert;
 
 final class PausePayAvailabilityChecker implements PaymentMethodAvailabilityCheckerInterface
 {
+    public const MINIMUM_ORDER_AMOUNT = 50000;
+
+    public const MAXIMUM_ORDER_AMOUNT = 2000000;
+
     public function isAvailable(BasePaymentInterface $subject, PaymentMethodInterface $paymentMethod): bool
     {
         $gatewayConfig = $paymentMethod->getGatewayConfig();
@@ -44,6 +48,6 @@ final class PausePayAvailabilityChecker implements PaymentMethodAvailabilityChec
 
         $orderAmount = $order->getTotal();
 
-        return $orderAmount >= 50000 && $orderAmount <= 2000000;
+        return $orderAmount >= self::MINIMUM_ORDER_AMOUNT && $orderAmount <= self::MAXIMUM_ORDER_AMOUNT;
     }
 }
