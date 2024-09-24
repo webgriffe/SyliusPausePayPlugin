@@ -64,6 +64,8 @@ final class PaymentController extends AbstractController
             'afterUrl' => $token->getAfterUrl(),
             'paymentStatusUrl' => $paymentStatusUrl,
             'redirectUrl' => PaymentDetailsHelper::getRedirectUrl($paymentDetails),
+            'payment' => $syliusPayment,
+            'token' => $token,
         ];
         $this->logInfo($syliusPayment, 'Showing process page to user.', $params);
 
