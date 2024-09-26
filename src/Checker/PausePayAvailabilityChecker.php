@@ -9,6 +9,8 @@ use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Model\PaymentInterface as BasePaymentInterface;
+use Symfony\Component\EventDispatcher\GenericEvent;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 use Webgriffe\SyliusPausePayPlugin\Payum\PausePayApi;
 use Webmozart\Assert\Assert;
 
@@ -17,6 +19,12 @@ final class PausePayAvailabilityChecker implements PaymentMethodAvailabilityChec
     public const MINIMUM_ORDER_AMOUNT = 50000;
 
     public const MAXIMUM_ORDER_AMOUNT = 2000000;
+
+    public const AVAILABILITY_EVENT_NAME = 'webgriffe.sylius_pausepay_plugin.checker.pausepay_availability';
+
+    public function __construct(private EventDispatcherInterface $eventDispatcher)
+    {
+    }
 
     public function isAvailable(BasePaymentInterface $subject, PaymentMethodInterface $paymentMethod): bool
     {
@@ -48,6 +56,20 @@ final class PausePayAvailabilityChecker implements PaymentMethodAvailabilityChec
 
         $orderAmount = $order->getTotal();
 
-        return $orderAmount >= self::MINIMUM_ORDER_AMOUNT && $orderAmount <= self::MAXIMUM_ORDER_AMOUNT;
+        $isAvailable = $orderAmount >= self::MINIMUM_ORDER_AMOUNT && $orderAmount <= self::MAXIMUM_ORDER_AMOUNT;
+
+        /** @var GenericEvent $event */
+        $event = $this->eventDispatcher->dispatch(
+            new GenericEvent($order, ['paymentMethod' => $paymentMethod, 'isAvailable' => $isAvailable]),
+            self::AVAILABILITY_EVENT_NAME,
+        );
+
+        /** @var mixed $result */
+        $result = $event->getArgument('isAvailable');
+        if (is_bool($result)) {
+            return $result;
+        }
+
+        return $isAvailable;
     }
 }
