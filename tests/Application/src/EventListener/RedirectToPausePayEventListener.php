@@ -52,7 +52,10 @@ final class RedirectToPausePayEventListener
 
         $shopOrderUrl = $this->urlGenerator->generate(
             'sylius_shop_order_show',
-            ['tokenValue' => $order->getTokenValue()]
+            [
+                'tokenValue' => $order->getTokenValue(),
+                '_locale' => $order->getLocaleCode(),
+            ]
         );
 
         if (!str_contains($haystack, $shopOrderUrl)) {
